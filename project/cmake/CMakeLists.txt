@@ -136,6 +136,9 @@ set(required_dep_libs EXPAT)
 find_package(TexturePacker REQUIRED)
 find_package(JsonSchemaBuilder REQUIRED)
 
+# Required ODB
+find_package(ODB REQUIRED OPTIONAL_COMPONENTS sqlite mysql)
+
 foreach(dep ${required_dep_libs})
   find_package(${dep} REQUIRED)
 endforeach()
