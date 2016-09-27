@@ -309,6 +309,7 @@ add_dependencies(lib${APP_NAME_LC} libcpluff ffmpeg dvdnav crossguid)
 
 # Codegen
 add_subdirectory(${CORE_SOURCE_DIR}/xbmc/interfaces/swig build/swig)
+add_subdirectory(${CORE_SOURCE_DIR}/xbmc/interfaces/odb build/odb)
 
 # Other files (IDE)
 set(OTHER_FILES README.md)
