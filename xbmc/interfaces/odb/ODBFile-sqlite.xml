@@ -1,0 +1,21 @@
+<changelog xmlns="http://www.codesynthesis.com/xmlns/odb/changelog" database="sqlite" version="1">
+  <model version="1">
+    <table name="CODBFile" kind="object">
+      <column name="idFile" type="INTEGER" null="false"/>
+      <column name="path" type="INTEGER" null="true"/>
+      <column name="filename" type="TEXT" null="false"/>
+      <column name="playCount" type="INTEGER" null="false"/>
+      <column name="lastPlayed" type="TEXT" null="false"/>
+      <column name="dateAdded" type="TEXT" null="false"/>
+      <primary-key auto="true">
+        <column name="idFile"/>
+      </primary-key>
+      <foreign-key name="path_fk" deferrable="DEFERRED">
+        <column name="path"/>
+        <references table="CODBPath">
+          <column name="idPath"/>
+        </references>
+      </foreign-key>
+    </table>
+  </model>
+</changelog>

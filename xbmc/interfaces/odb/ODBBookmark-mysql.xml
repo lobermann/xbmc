@@ -1,0 +1,22 @@
+<changelog xmlns="http://www.codesynthesis.com/xmlns/odb/changelog" database="mysql" version="1">
+  <model version="1">
+    <table name="CODBBookmark" options="ENGINE=InnoDB" kind="object">
+      <column name="idBookmark" type="BIGINT UNSIGNED" null="false"/>
+      <column name="file" type="BIGINT UNSIGNED" null="true"/>
+      <column name="timeInSeconds" type="DOUBLE" null="false"/>
+      <column name="totalTimeInSeconds" type="DOUBLE" null="false"/>
+      <column name="thumbNailImage" type="TEXT" null="false"/>
+      <column name="player" type="TEXT" null="false"/>
+      <column name="type" type="INT" null="false"/>
+      <primary-key auto="true">
+        <column name="idBookmark"/>
+      </primary-key>
+      <foreign-key name="CODBBookmark_file_fk" deferrable="DEFERRED">
+        <column name="file"/>
+        <references table="CODBFile">
+          <column name="idFile"/>
+        </references>
+      </foreign-key>
+    </table>
+  </model>
+</changelog>

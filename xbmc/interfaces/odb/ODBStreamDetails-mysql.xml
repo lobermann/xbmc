@@ -1,0 +1,29 @@
+<changelog xmlns="http://www.codesynthesis.com/xmlns/odb/changelog" database="mysql" version="1">
+  <model version="1">
+    <table name="CODBStreamDetails" options="ENGINE=InnoDB" kind="object">
+      <column name="idStreamDetail" type="BIGINT UNSIGNED" null="false"/>
+      <column name="file" type="BIGINT UNSIGNED" null="true"/>
+      <column name="streamType" type="INT" null="false"/>
+      <column name="videoCodec" type="TEXT" null="false"/>
+      <column name="videoAspect" type="FLOAT" null="false"/>
+      <column name="videoWidth" type="INT" null="false"/>
+      <column name="videoHeight" type="INT" null="false"/>
+      <column name="audioCodec" type="TEXT" null="false"/>
+      <column name="audioChannels" type="INT" null="false"/>
+      <column name="audioLanguage" type="TEXT" null="false"/>
+      <column name="subtitleLanguage" type="TEXT" null="false"/>
+      <column name="videoDuration" type="INT" null="false"/>
+      <column name="stereoMode" type="TEXT" null="false"/>
+      <column name="videoLanguage" type="TEXT" null="false"/>
+      <primary-key auto="true">
+        <column name="idStreamDetail"/>
+      </primary-key>
+      <foreign-key name="CODBStreamDetails_file_fk" deferrable="DEFERRED">
+        <column name="file"/>
+        <references table="CODBFile">
+          <column name="idFile"/>
+        </references>
+      </foreign-key>
+    </table>
+  </model>
+</changelog>

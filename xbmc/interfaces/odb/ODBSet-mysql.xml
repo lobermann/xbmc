@@ -1,0 +1,26 @@
+<changelog xmlns="http://www.codesynthesis.com/xmlns/odb/changelog" database="mysql" version="1">
+  <model version="1">
+    <table name="CODBSet" options="ENGINE=InnoDB" kind="object">
+      <column name="idSet" type="BIGINT UNSIGNED" null="false"/>
+      <column name="name" type="TEXT" null="false"/>
+      <column name="overview" type="TEXT" null="false"/>
+      <primary-key auto="true">
+        <column name="idSet"/>
+      </primary-key>
+    </table>
+    <table name="CODBSet_artwork" options="ENGINE=InnoDB" kind="container">
+      <column name="object_id" type="BIGINT UNSIGNED" null="false"/>
+      <column name="key" type="TEXT" null="false"/>
+      <column name="value" type="TEXT" null="false"/>
+      <foreign-key name="CODBSet_artwork_object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="CODBSet">
+          <column name="idSet"/>
+        </references>
+      </foreign-key>
+      <index name="object_id_i">
+        <column name="object_id"/>
+      </index>
+    </table>
+  </model>
+</changelog>

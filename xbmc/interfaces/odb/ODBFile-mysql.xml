@@ -1,0 +1,21 @@
+<changelog xmlns="http://www.codesynthesis.com/xmlns/odb/changelog" database="mysql" version="1">
+  <model version="1">
+    <table name="CODBFile" options="ENGINE=InnoDB" kind="object">
+      <column name="idFile" type="BIGINT UNSIGNED" null="false"/>
+      <column name="path" type="BIGINT UNSIGNED" null="true"/>
+      <column name="filename" type="TEXT" null="false"/>
+      <column name="playCount" type="INT UNSIGNED" null="false"/>
+      <column name="lastPlayed" type="TEXT" null="false"/>
+      <column name="dateAdded" type="TEXT" null="false"/>
+      <primary-key auto="true">
+        <column name="idFile"/>
+      </primary-key>
+      <foreign-key name="CODBFile_path_fk" deferrable="DEFERRED">
+        <column name="path"/>
+        <references table="CODBPath">
+          <column name="idPath"/>
+        </references>
+      </foreign-key>
+    </table>
+  </model>
+</changelog>

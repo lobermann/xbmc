@@ -1,0 +1,22 @@
+<changelog xmlns="http://www.codesynthesis.com/xmlns/odb/changelog" database="sqlite" version="1">
+  <model version="1">
+    <table name="CODBBookmark" kind="object">
+      <column name="idBookmark" type="INTEGER" null="false"/>
+      <column name="file" type="INTEGER" null="true"/>
+      <column name="timeInSeconds" type="REAL" null="true"/>
+      <column name="totalTimeInSeconds" type="REAL" null="true"/>
+      <column name="thumbNailImage" type="TEXT" null="false"/>
+      <column name="player" type="TEXT" null="false"/>
+      <column name="type" type="INTEGER" null="false"/>
+      <primary-key auto="true">
+        <column name="idBookmark"/>
+      </primary-key>
+      <foreign-key name="file_fk" deferrable="DEFERRED">
+        <column name="file"/>
+        <references table="CODBFile">
+          <column name="idFile"/>
+        </references>
+      </foreign-key>
+    </table>
+  </model>
+</changelog>

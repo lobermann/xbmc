@@ -1,0 +1,18 @@
+<changelog xmlns="http://www.codesynthesis.com/xmlns/odb/changelog" database="mysql" version="1">
+  <model version="1">
+    <table name="CODBPersonLink" options="ENGINE=InnoDB" kind="object">
+      <column name="idPersonLink" type="BIGINT UNSIGNED" null="false"/>
+      <column name="person" type="BIGINT UNSIGNED" null="true"/>
+      <column name="role" type="TEXT" null="false"/>
+      <primary-key auto="true">
+        <column name="idPersonLink"/>
+      </primary-key>
+      <foreign-key name="CODBPersonLink_person_fk" deferrable="DEFERRED">
+        <column name="person"/>
+        <references table="CODBPerson">
+          <column name="idPerson"/>
+        </references>
+      </foreign-key>
+    </table>
+  </model>
+</changelog>

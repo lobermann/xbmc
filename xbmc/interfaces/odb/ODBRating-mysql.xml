@@ -1,0 +1,20 @@
+<changelog xmlns="http://www.codesynthesis.com/xmlns/odb/changelog" database="mysql" version="1">
+  <model version="1">
+    <table name="CODBRating" options="ENGINE=InnoDB" kind="object">
+      <column name="idRating" type="BIGINT UNSIGNED" null="false"/>
+      <column name="file" type="BIGINT UNSIGNED" null="true"/>
+      <column name="ratingType" type="TEXT" null="false"/>
+      <column name="rating" type="FLOAT" null="false"/>
+      <column name="votes" type="INT" null="false"/>
+      <primary-key auto="true">
+        <column name="idRating"/>
+      </primary-key>
+      <foreign-key name="CODBRating_file_fk" deferrable="DEFERRED">
+        <column name="file"/>
+        <references table="CODBFile">
+          <column name="idFile"/>
+        </references>
+      </foreign-key>
+    </table>
+  </model>
+</changelog>

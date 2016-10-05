@@ -1,0 +1,27 @@
+<changelog xmlns="http://www.codesynthesis.com/xmlns/odb/changelog" database="mysql" version="1">
+  <model version="1">
+    <table name="CODBPath" options="ENGINE=InnoDB" kind="object">
+      <column name="idPath" type="BIGINT UNSIGNED" null="false"/>
+      <column name="path" type="TEXT" null="false"/>
+      <column name="content" type="TEXT" null="false"/>
+      <column name="scraper" type="TEXT" null="false"/>
+      <column name="hash" type="TEXT" null="false"/>
+      <column name="scanRecursive" type="INT" null="false"/>
+      <column name="useFolderNames" type="TINYINT(1)" null="false"/>
+      <column name="settings" type="TEXT" null="false"/>
+      <column name="noUpdate" type="TINYINT(1)" null="false"/>
+      <column name="exclude" type="TINYINT(1)" null="false"/>
+      <column name="dateAdded" type="TEXT" null="false"/>
+      <column name="parentPath" type="BIGINT UNSIGNED" null="true"/>
+      <primary-key auto="true">
+        <column name="idPath"/>
+      </primary-key>
+      <foreign-key name="CODBPath_parentPath_fk" deferrable="DEFERRED">
+        <column name="parentPath"/>
+        <references table="CODBPath">
+          <column name="idPath"/>
+        </references>
+      </foreign-key>
+    </table>
+  </model>
+</changelog>

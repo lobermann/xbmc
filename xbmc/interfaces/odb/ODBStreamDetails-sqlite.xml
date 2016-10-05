@@ -1,0 +1,29 @@
+<changelog xmlns="http://www.codesynthesis.com/xmlns/odb/changelog" database="sqlite" version="1">
+  <model version="1">
+    <table name="CODBStreamDetails" kind="object">
+      <column name="idStreamDetail" type="INTEGER" null="false"/>
+      <column name="file" type="INTEGER" null="true"/>
+      <column name="streamType" type="INTEGER" null="false"/>
+      <column name="videoCodec" type="TEXT" null="false"/>
+      <column name="videoAspect" type="REAL" null="true"/>
+      <column name="videoWidth" type="INTEGER" null="false"/>
+      <column name="videoHeight" type="INTEGER" null="false"/>
+      <column name="audioCodec" type="TEXT" null="false"/>
+      <column name="audioChannels" type="INTEGER" null="false"/>
+      <column name="audioLanguage" type="TEXT" null="false"/>
+      <column name="subtitleLanguage" type="TEXT" null="false"/>
+      <column name="videoDuration" type="INTEGER" null="false"/>
+      <column name="stereoMode" type="TEXT" null="false"/>
+      <column name="videoLanguage" type="TEXT" null="false"/>
+      <primary-key auto="true">
+        <column name="idStreamDetail"/>
+      </primary-key>
+      <foreign-key name="file_fk" deferrable="DEFERRED">
+        <column name="file"/>
+        <references table="CODBFile">
+          <column name="idFile"/>
+        </references>
+      </foreign-key>
+    </table>
+  </model>
+</changelog>

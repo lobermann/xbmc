@@ -1,0 +1,301 @@
+<changelog xmlns="http://www.codesynthesis.com/xmlns/odb/changelog" database="mysql" version="1">
+  <model version="1">
+    <table name="CODBMovie" options="ENGINE=InnoDB" kind="object">
+      <column name="idMovie" type="BIGINT UNSIGNED" null="false"/>
+      <column name="file" type="BIGINT UNSIGNED" null="true"/>
+      <column name="title" type="TEXT" null="false"/>
+      <column name="plot" type="TEXT" null="false"/>
+      <column name="plotoutline" type="TEXT" null="false"/>
+      <column name="tagline" type="TEXT" null="false"/>
+      <column name="defaultRating" type="BIGINT UNSIGNED" null="true"/>
+      <column name="credits" type="TEXT" null="false"/>
+      <column name="thumbUrl" type="TEXT" null="false"/>
+      <column name="sortTitle" type="TEXT" null="false"/>
+      <column name="runtime" type="INT" null="false"/>
+      <column name="mpaa" type="TEXT" null="false"/>
+      <column name="top250" type="INT" null="false"/>
+      <column name="originalTitle" type="TEXT" null="false"/>
+      <column name="thumbUrl_spoof" type="TEXT" null="false"/>
+      <column name="trailer" type="TEXT" null="false"/>
+      <column name="fanart" type="TEXT" null="false"/>
+      <column name="basePath" type="BIGINT UNSIGNED" null="true"/>
+      <column name="parentPath" type="BIGINT UNSIGNED" null="true"/>
+      <column name="set" type="BIGINT UNSIGNED" null="true"/>
+      <column name="userrating" type="INT" null="false"/>
+      <column name="premiered" type="TEXT" null="false"/>
+      <column name="resumeBookmark" type="BIGINT UNSIGNED" null="true"/>
+      <column name="defaultID" type="BIGINT UNSIGNED" null="true"/>
+      <primary-key auto="true">
+        <column name="idMovie"/>
+      </primary-key>
+      <foreign-key name="CODBMovie_file_fk" deferrable="DEFERRED">
+        <column name="file"/>
+        <references table="CODBFile">
+          <column name="idFile"/>
+        </references>
+      </foreign-key>
+      <foreign-key name="CODBMovie_defaultRating_fk" deferrable="DEFERRED">
+        <column name="defaultRating"/>
+        <references table="CODBRating">
+          <column name="idRating"/>
+        </references>
+      </foreign-key>
+      <foreign-key name="CODBMovie_basePath_fk" deferrable="DEFERRED">
+        <column name="basePath"/>
+        <references table="CODBPath">
+          <column name="idPath"/>
+        </references>
+      </foreign-key>
+      <foreign-key name="CODBMovie_parentPath_fk" deferrable="DEFERRED">
+        <column name="parentPath"/>
+        <references table="CODBPath">
+          <column name="idPath"/>
+        </references>
+      </foreign-key>
+      <foreign-key name="CODBMovie_set_fk" deferrable="DEFERRED">
+        <column name="set"/>
+        <references table="CODBSet">
+          <column name="idSet"/>
+        </references>
+      </foreign-key>
+      <foreign-key name="CODBMovie_resumeBookmark_fk" deferrable="DEFERRED">
+        <column name="resumeBookmark"/>
+        <references table="CODBBookmark">
+          <column name="idBookmark"/>
+        </references>
+      </foreign-key>
+      <foreign-key name="CODBMovie_defaultID_fk" deferrable="DEFERRED">
+        <column name="defaultID"/>
+        <references table="CODBUniqueID">
+          <column name="idUniqueID"/>
+        </references>
+      </foreign-key>
+    </table>
+    <table name="CODBMovie_ratings" options="ENGINE=InnoDB" kind="container">
+      <column name="object_id" type="BIGINT UNSIGNED" null="false"/>
+      <column name="index" type="BIGINT UNSIGNED" null="false"/>
+      <column name="value" type="BIGINT UNSIGNED" null="true"/>
+      <foreign-key name="CODBMovie_ratings_object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="CODBMovie">
+          <column name="idMovie"/>
+        </references>
+      </foreign-key>
+      <index name="object_id_i">
+        <column name="object_id"/>
+      </index>
+      <index name="index_i">
+        <column name="index"/>
+      </index>
+      <foreign-key name="CODBMovie_ratings_value_fk" deferrable="DEFERRED">
+        <column name="value"/>
+        <references table="CODBRating">
+          <column name="idRating"/>
+        </references>
+      </foreign-key>
+    </table>
+    <table name="CODBMovie_genres" options="ENGINE=InnoDB" kind="container">
+      <column name="object_id" type="BIGINT UNSIGNED" null="false"/>
+      <column name="index" type="BIGINT UNSIGNED" null="false"/>
+      <column name="value" type="BIGINT UNSIGNED" null="true"/>
+      <foreign-key name="CODBMovie_genres_object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="CODBMovie">
+          <column name="idMovie"/>
+        </references>
+      </foreign-key>
+      <index name="object_id_i">
+        <column name="object_id"/>
+      </index>
+      <index name="index_i">
+        <column name="index"/>
+      </index>
+      <foreign-key name="CODBMovie_genres_value_fk" deferrable="DEFERRED">
+        <column name="value"/>
+        <references table="CODBGenre">
+          <column name="idGenre"/>
+        </references>
+      </foreign-key>
+    </table>
+    <table name="CODBMovie_directors" options="ENGINE=InnoDB" kind="container">
+      <column name="object_id" type="BIGINT UNSIGNED" null="false"/>
+      <column name="index" type="BIGINT UNSIGNED" null="false"/>
+      <column name="value" type="BIGINT UNSIGNED" null="true"/>
+      <foreign-key name="CODBMovie_directors_object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="CODBMovie">
+          <column name="idMovie"/>
+        </references>
+      </foreign-key>
+      <index name="object_id_i">
+        <column name="object_id"/>
+      </index>
+      <index name="index_i">
+        <column name="index"/>
+      </index>
+      <foreign-key name="CODBMovie_directors_value_fk" deferrable="DEFERRED">
+        <column name="value"/>
+        <references table="CODBPersonLink">
+          <column name="idPersonLink"/>
+        </references>
+      </foreign-key>
+    </table>
+    <table name="CODBMovie_actors" options="ENGINE=InnoDB" kind="container">
+      <column name="object_id" type="BIGINT UNSIGNED" null="false"/>
+      <column name="index" type="BIGINT UNSIGNED" null="false"/>
+      <column name="value" type="BIGINT UNSIGNED" null="true"/>
+      <foreign-key name="CODBMovie_actors_object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="CODBMovie">
+          <column name="idMovie"/>
+        </references>
+      </foreign-key>
+      <index name="object_id_i">
+        <column name="object_id"/>
+      </index>
+      <index name="index_i">
+        <column name="index"/>
+      </index>
+      <foreign-key name="CODBMovie_actors_value_fk" deferrable="DEFERRED">
+        <column name="value"/>
+        <references table="CODBPersonLink">
+          <column name="idPersonLink"/>
+        </references>
+      </foreign-key>
+    </table>
+    <table name="CODBMovie_writingCredits" options="ENGINE=InnoDB" kind="container">
+      <column name="object_id" type="BIGINT UNSIGNED" null="false"/>
+      <column name="index" type="BIGINT UNSIGNED" null="false"/>
+      <column name="value" type="BIGINT UNSIGNED" null="true"/>
+      <foreign-key name="CODBMovie_writingCredits_object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="CODBMovie">
+          <column name="idMovie"/>
+        </references>
+      </foreign-key>
+      <index name="object_id_i">
+        <column name="object_id"/>
+      </index>
+      <index name="index_i">
+        <column name="index"/>
+      </index>
+      <foreign-key name="CODBMovie_writingCredits_value_fk" deferrable="DEFERRED">
+        <column name="value"/>
+        <references table="CODBPersonLink">
+          <column name="idPersonLink"/>
+        </references>
+      </foreign-key>
+    </table>
+    <table name="CODBMovie_studios" options="ENGINE=InnoDB" kind="container">
+      <column name="object_id" type="BIGINT UNSIGNED" null="false"/>
+      <column name="index" type="BIGINT UNSIGNED" null="false"/>
+      <column name="value" type="TEXT" null="false"/>
+      <foreign-key name="CODBMovie_studios_object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="CODBMovie">
+          <column name="idMovie"/>
+        </references>
+      </foreign-key>
+      <index name="object_id_i">
+        <column name="object_id"/>
+      </index>
+      <index name="index_i">
+        <column name="index"/>
+      </index>
+    </table>
+    <table name="CODBMovie_tags" options="ENGINE=InnoDB" kind="container">
+      <column name="object_id" type="BIGINT UNSIGNED" null="false"/>
+      <column name="index" type="BIGINT UNSIGNED" null="false"/>
+      <column name="value" type="TEXT" null="false"/>
+      <foreign-key name="CODBMovie_tags_object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="CODBMovie">
+          <column name="idMovie"/>
+        </references>
+      </foreign-key>
+      <index name="object_id_i">
+        <column name="object_id"/>
+      </index>
+      <index name="index_i">
+        <column name="index"/>
+      </index>
+    </table>
+    <table name="CODBMovie_artwork" options="ENGINE=InnoDB" kind="container">
+      <column name="object_id" type="BIGINT UNSIGNED" null="false"/>
+      <column name="key" type="TEXT" null="false"/>
+      <column name="value" type="TEXT" null="false"/>
+      <foreign-key name="CODBMovie_artwork_object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="CODBMovie">
+          <column name="idMovie"/>
+        </references>
+      </foreign-key>
+      <index name="object_id_i">
+        <column name="object_id"/>
+      </index>
+    </table>
+    <table name="CODBMovie_countries" options="ENGINE=InnoDB" kind="container">
+      <column name="object_id" type="BIGINT UNSIGNED" null="false"/>
+      <column name="index" type="BIGINT UNSIGNED" null="false"/>
+      <column name="value" type="TEXT" null="false"/>
+      <foreign-key name="CODBMovie_countries_object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="CODBMovie">
+          <column name="idMovie"/>
+        </references>
+      </foreign-key>
+      <index name="object_id_i">
+        <column name="object_id"/>
+      </index>
+      <index name="index_i">
+        <column name="index"/>
+      </index>
+    </table>
+    <table name="CODBMovie_bookmarks" options="ENGINE=InnoDB" kind="container">
+      <column name="object_id" type="BIGINT UNSIGNED" null="false"/>
+      <column name="index" type="BIGINT UNSIGNED" null="false"/>
+      <column name="value" type="BIGINT UNSIGNED" null="true"/>
+      <foreign-key name="CODBMovie_bookmarks_object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="CODBMovie">
+          <column name="idMovie"/>
+        </references>
+      </foreign-key>
+      <index name="object_id_i">
+        <column name="object_id"/>
+      </index>
+      <index name="index_i">
+        <column name="index"/>
+      </index>
+      <foreign-key name="CODBMovie_bookmarks_value_fk" deferrable="DEFERRED">
+        <column name="value"/>
+        <references table="CODBBookmark">
+          <column name="idBookmark"/>
+        </references>
+      </foreign-key>
+    </table>
+    <table name="CODBMovie_ids" options="ENGINE=InnoDB" kind="container">
+      <column name="object_id" type="BIGINT UNSIGNED" null="false"/>
+      <column name="index" type="BIGINT UNSIGNED" null="false"/>
+      <column name="value" type="BIGINT UNSIGNED" null="true"/>
+      <foreign-key name="CODBMovie_ids_object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="CODBMovie">
+          <column name="idMovie"/>
+        </references>
+      </foreign-key>
+      <index name="object_id_i">
+        <column name="object_id"/>
+      </index>
+      <index name="index_i">
+        <column name="index"/>
+      </index>
+      <foreign-key name="CODBMovie_ids_value_fk" deferrable="DEFERRED">
+        <column name="value"/>
+        <references table="CODBUniqueID">
+          <column name="idUniqueID"/>
+        </references>
+      </foreign-key>
+    </table>
+  </model>
+</changelog>

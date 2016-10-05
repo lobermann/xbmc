@@ -1,0 +1,18 @@
+<changelog xmlns="http://www.codesynthesis.com/xmlns/odb/changelog" database="sqlite" version="1">
+  <model version="1">
+    <table name="CODBPersonLink" kind="object">
+      <column name="idPersonLink" type="INTEGER" null="false"/>
+      <column name="person" type="INTEGER" null="true"/>
+      <column name="role" type="TEXT" null="false"/>
+      <primary-key auto="true">
+        <column name="idPersonLink"/>
+      </primary-key>
+      <foreign-key name="person_fk" deferrable="DEFERRED">
+        <column name="person"/>
+        <references table="CODBPerson">
+          <column name="idPerson"/>
+        </references>
+      </foreign-key>
+    </table>
+  </model>
+</changelog>
