@@ -138,6 +138,7 @@ find_package(JsonSchemaBuilder REQUIRED)
 
 # Required ODB
 find_package(ODB REQUIRED OPTIONAL_COMPONENTS sqlite mysql)
+list(APPEND DEPLIBS ${ODB_LIBRARIES})
 
 foreach(dep ${required_dep_libs})
   find_package(${dep} REQUIRED)

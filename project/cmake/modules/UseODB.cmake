@@ -13,7 +13,7 @@ function(odb_compile outvar)
 		message(FATAL_ERROR "odb compiler executable not found")
 	endif()
 
-	set(options GENERATE_QUERY GENERATE_SESSION GENERATE_SCHEMA GENERATE_PREPARED)
+	set(options GENERATE_QUERY GENERATE_SESSION GENERATE_SCHEMA GENERATE_PREPARED CPP11)
 	set(oneValueParams SCHEMA_FORMAT SCHEMA_NAME TABLE_PREFIX
 		STANDARD SLOC_LIMIT
 		HEADER_PROLOGUE INLINE_PROLOGUE SOURCE_PROLOGUE
@@ -58,6 +58,10 @@ function(odb_compile outvar)
 	if(PARAM_GENERATE_PREPARED)
 		list(APPEND ODB_ARGS --generate-prepared)
 	endif()
+
+    if(PARAM_CPP11)
+        list(APPEND ODB_ARGS --std c++11)
+    endif()
 
 	if(PARAM_SCHEMA_FORMAT)
 		list(APPEND ODB_ARGS --schema-format "${PARAM_SCHEMA_FORMAT}")
@@ -157,6 +161,12 @@ function(odb_compile outvar)
 		endif()
 
 		add_custom_command(OUTPUT ${outputs}
+			COMMAND ${ODB_EXECUTABLE} ${ODB_ARGS} "${input}"
+			DEPENDS "${input}"
+			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+			VERBATIM)
+
+        add_custom_command(OUTPUT ${outputs}
 			COMMAND ${ODB_EXECUTABLE} ${ODB_ARGS} "${input}"
 			DEPENDS "${input}"
 			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
