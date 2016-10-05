@@ -521,22 +521,39 @@ int CVideoDatabase::GetPathId(const std::string& strPath)
   try
   {
     int idPath=-1;
-    if (NULL == m_pDB.get()) return -1;
-    if (NULL == m_pDS.get()) return -1;
+    //if (NULL == m_pDB.get()) return -1;
+    //if (NULL == m_pDS.get()) return -1;
 
     std::string strPath1(strPath);
     if (URIUtils::IsStack(strPath) || StringUtils::StartsWithNoCase(strPath, "rar://") || StringUtils::StartsWithNoCase(strPath, "zip://"))
       URIUtils::GetParentPath(strPath,strPath1);
 
     URIUtils::AddSlashAtEnd(strPath1);
+    
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    
+    typedef odb::query<CODBPath> query;
+    
+    CODBPath path;
+    if(m_cdb.getDB()->query_one<CODBPath>(query::path == strPath1, path))
+      idPath =path.m_idPath;
+    
+    if(odb_transaction)
+      odb_transaction->commit();
 
-    strSQL=PrepareSQL("select idPath from path where strPath='%s'",strPath1.c_str());
-    m_pDS->query(strSQL);
-    if (!m_pDS->eof())
-      idPath = m_pDS->fv("path.idPath").get_asInt();
+    //strSQL=PrepareSQL("select idPath from path where strPath='%s'",strPath1.c_str());
+    //m_pDS->query(strSQL);
+    //if (!m_pDS->eof())
+    //  idPath = m_pDS->fv("path.idPath").get_asInt();
 
-    m_pDS->close();
+    //m_pDS->close();
+    
+    //TODO: Return a unsigned long, function should also return it
     return idPath;
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s exception to getpath (%s) : %s", __FUNCTION__, strPath.c_str(), e.what());
   }
   catch (...)
   {
@@ -549,13 +566,35 @@ bool CVideoDatabase::GetPaths(std::set<std::string> &paths)
 {
   try
   {
-    if (NULL == m_pDB.get()) return false;
-    if (NULL == m_pDS.get()) return false;
+    //if (NULL == m_pDB.get()) return false;
+    //if (NULL == m_pDS.get()) return false;
 
     paths.clear();
+    
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    typedef odb::query<CODBPath> query;
+      
+    odb::result<CODBPath> res = m_cdb.getDB()->query<CODBPath>( (query::content == "movies" || query::content == "musicvideos")
+                                                               && !query::path.like("multipath://%")
+                                                               && query::noUpdate == true);
+    for(CODBPath& path: res)
+    {
+      paths.insert(path.m_path);
+    }
+      
+    res = m_cdb.getDB()->query<CODBPath>( (query::content == "tvshows" || query::content == "musicvideos")
+                                         && !query::path.like("multipath://%")
+                                         && query::noUpdate == true); //TODO: Consider tvshowlinkpath
+    for(CODBPath& path: res)
+    {
+      paths.insert(path.m_path);
+    }
+      
+    if(odb_transaction)
+      odb_transaction->commit();
 
     // grab all paths with movie content set
-    if (!m_pDS->query("select strPath,noUpdate from path"
+    /*if (!m_pDS->query("select strPath,noUpdate from path"
                       " where (strContent = 'movies' or strContent = 'musicvideos')"
                       " and strPath NOT like 'multipath://%%'"
                       " order by strPath"))
@@ -567,10 +606,10 @@ bool CVideoDatabase::GetPaths(std::set<std::string> &paths)
         paths.insert(m_pDS->fv("strPath").get_asString());
       m_pDS->next();
     }
-    m_pDS->close();
+    m_pDS->close();*/
 
     // then grab all tvshow paths
-    if (!m_pDS->query("select strPath,noUpdate from path"
+    /*if (!m_pDS->query("select strPath,noUpdate from path"
                       " where ( strContent = 'tvshows'"
                       "       or idPath in (select idPath from tvshowlinkpath))"
                       " and strPath NOT like 'multipath://%%'"
@@ -583,13 +622,15 @@ bool CVideoDatabase::GetPaths(std::set<std::string> &paths)
         paths.insert(m_pDS->fv("strPath").get_asString());
       m_pDS->next();
     }
-    m_pDS->close();
+    m_pDS->close();*/
 
     // finally grab all other paths holding a movie which is not a stack or a rar archive
     // - this isnt perfect but it should do fine in most situations.
     // reason we need it to hold a movie is stacks from different directories (cdx folders for instance)
     // not making mistakes must take priority
-    if (!m_pDS->query("select strPath,noUpdate from path"
+    
+    //TODO: Needs to be moved to odb
+    /*if (!m_pDS->query("select strPath,noUpdate from path"
                        " where idPath in (select idPath from files join movie on movie.idFile=files.idFile)"
                        " and idPath NOT in (select idPath from tvshowlinkpath)"
                        " and idPath NOT in (select idPath from files where strFileName like 'video_ts.ifo')" // dvd folders get stacked to a single item in parent folder
@@ -605,8 +646,12 @@ bool CVideoDatabase::GetPaths(std::set<std::string> &paths)
         paths.insert(m_pDS->fv("strPath").get_asString());
       m_pDS->next();
     }
-    m_pDS->close();
+    m_pDS->close();*/
     return true;
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s exception - %s", __FUNCTION__, e.what());
   }
   catch (...)
   {
@@ -686,12 +731,27 @@ bool CVideoDatabase::GetSubPaths(const std::string &basepath, std::vector<std::p
   std::string sql;
   try
   {
-    if (!m_pDB.get() || !m_pDS.get())
-      return false;
-
+    //if (!m_pDB.get() || !m_pDS.get())
+    //  return false;
+    
     std::string path(basepath);
     URIUtils::AddSlashAtEnd(path);
-    sql = PrepareSQL("SELECT idPath,strPath FROM path WHERE SUBSTR(strPath,1,%i)='%s'"
+    
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    typedef odb::query<CODBPath> query;
+      
+    odb::result<CODBPath> res = m_cdb.getDB()->query<CODBPath>( (query::path.like(path + "%")) +
+                                                               " AND idPath NOT IN (SELECT path FROM CODBFile WHERE filename LIKE 'video_ts.ifo')"
+                                                               " AND idPath NOT IN (SELECT path FROM CODBFile WHERE filename LIKE 'index.bdmv')"); //TODO: See if there is way to do this sub-queries in odb
+    for(CODBPath& path: res)
+    {
+      subpaths.emplace_back(path.m_idPath, path.m_path);
+    }
+    
+    if(odb_transaction)
+      odb_transaction->commit();
+  
+    /*sql = PrepareSQL("SELECT idPath,strPath FROM path WHERE SUBSTR(strPath,1,%i)='%s'"
                      " AND idPath NOT IN (SELECT idPath FROM files WHERE strFileName LIKE 'video_ts.ifo')"
                      " AND idPath NOT IN (SELECT idPath FROM files WHERE strFileName LIKE 'index.bdmv')"
                      , StringUtils::utf8_strlen(path.c_str()), path.c_str());
@@ -702,8 +762,12 @@ bool CVideoDatabase::GetSubPaths(const std::string &basepath, std::vector<std::p
       subpaths.emplace_back(m_pDS->fv(0).get_asInt(), m_pDS->fv(1).get_asString());
       m_pDS->next();
     }
-    m_pDS->close();
+    m_pDS->close();*/
     return true;
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s exception during query: %s",__FUNCTION__, e.what());
   }
   catch (...)
   {
@@ -721,8 +785,10 @@ int CVideoDatabase::AddPath(const std::string& strPath, const std::string &paren
     if (idPath >= 0)
       return idPath; // already have the path
 
-    if (NULL == m_pDB.get()) return -1;
-    if (NULL == m_pDS.get()) return -1;
+    //if (NULL == m_pDB.get()) return -1;
+    //if (NULL == m_pDS.get()) return -1;
+
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
 
     std::string strPath1(strPath);
     if (URIUtils::IsStack(strPath) || StringUtils::StartsWithNoCase(strPath, "rar://") || StringUtils::StartsWithNoCase(strPath, "zip://"))
@@ -731,9 +797,27 @@ int CVideoDatabase::AddPath(const std::string& strPath, const std::string &paren
     URIUtils::AddSlashAtEnd(strPath1);
 
     int idParentPath = GetPathId(parentPath.empty() ? (std::string)URIUtils::GetParentPath(strPath1) : parentPath);
+    
+    //TODO: Add Path and GetPathId to return CODBPath Objects instead of IDs
+    CODBPath path;
+    path.m_path = strPath1;
+    
+    if (dateAdded.IsValid())
+      path.m_dateAdded = dateAdded.GetAsDBDateTime();
+    
+    if (idParentPath >= 0)
+    {
+      path.m_parentPath = std::shared_ptr<CODBPath>(m_cdb.getDB()->load<CODBPath>(idParentPath));
+    }
+    
+    m_cdb.getDB()->persist(path);
+    if(odb_transaction)
+      odb_transaction->commit();
+    
+    return path.m_idPath;
 
     // add the path
-    if (idParentPath < 0)
+    /*if (idParentPath < 0)
     {
       if (dateAdded.IsValid())
         strSQL=PrepareSQL("insert into path (idPath, strPath, dateAdded) values (NULL, '%s', '%s')", strPath1.c_str(), dateAdded.GetAsDBDateTime().c_str());
@@ -749,7 +833,11 @@ int CVideoDatabase::AddPath(const std::string& strPath, const std::string &paren
     }
     m_pDS->exec(strSQL);
     idPath = (int)m_pDS->lastinsertid();
-    return idPath;
+    return idPath;*/
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s exception on addpath (%s) - %s", __FUNCTION__, strSQL.c_str(), e.what());
   }
   catch (...)
   {
@@ -762,15 +850,34 @@ bool CVideoDatabase::GetPathHash(const std::string &path, std::string &hash)
 {
   try
   {
-    if (NULL == m_pDB.get()) return false;
-    if (NULL == m_pDS.get()) return false;
+    //if (NULL == m_pDB.get()) return false;
+    //if (NULL == m_pDS.get()) return false;
+    
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    typedef odb::query<CODBPath> query;
+    
+    CODBPath odb_path;
+    if(m_cdb.getDB()->query_one<CODBPath>(query::path == query::_ref(path), odb_path))
+      hash = odb_path.m_hash;
+    else
+    {
+      if(odb_transaction)
+        odb_transaction->commit();
+      return false;
+    }
+    if(odb_transaction)
+      odb_transaction->commit();
 
-    std::string strSQL=PrepareSQL("select strHash from path where strPath='%s'", path.c_str());
+    /*std::string strSQL=PrepareSQL("select strHash from path where strPath='%s'", path.c_str());
     m_pDS->query(strSQL);
     if (m_pDS->num_rows() == 0)
       return false;
-    hash = m_pDS->fv("strHash").get_asString();
+    hash = m_pDS->fv("strHash").get_asString();*/
     return true;
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s (%s) exception - %s", __FUNCTION__, path.c_str(), e.what());
   }
   catch (...)
   {
@@ -790,8 +897,7 @@ bool CVideoDatabase::GetSourcePath(const std::string &path, std::string &sourceP
 {
   try
   {
-    if (path.empty() ||
-        m_pDB.get() == NULL || m_pDS.get() == NULL)
+    if (path.empty())
       return false;
 
     std::string strPath2;
@@ -803,22 +909,26 @@ bool CVideoDatabase::GetSourcePath(const std::string &path, std::string &sourceP
 
     std::string strPath1 = URIUtils::GetDirectory(strPath2);
     int idPath = GetPathId(strPath1);
+    
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    typedef odb::query<CODBPath> query;
 
     if (idPath > -1)
     {
       // check if the given path already is a source itself
-      std::string strSQL = PrepareSQL("SELECT path.useFolderNames, path.scanRecursive, path.noUpdate, path.exclude FROM path WHERE "
-                                        "path.idPath = %i AND "
-                                        "path.strContent IS NOT NULL AND path.strContent != '' AND "
-                                        "path.strScraper IS NOT NULL AND path.strScraper != ''", idPath);
-      if (m_pDS->query(strSQL) && !m_pDS->eof())
+      CODBPath res;
+      if (m_cdb.getDB()->query_one<CODBPath>(query::idPath == idPath
+                                             && query::content.is_not_null() && query::content != ""
+                                             && query::scraper.is_not_null() && query::scraper != ""
+                                             , res))
       {
-        settings.parent_name_root = settings.parent_name = m_pDS->fv(0).get_asBool();
-        settings.recurse = m_pDS->fv(1).get_asInt();
-        settings.noupdate = m_pDS->fv(2).get_asBool();
-        settings.exclude = m_pDS->fv(3).get_asBool();
+        settings.parent_name_root = settings.parent_name = res.m_useFolderNames;
+        settings.recurse = res.m_scanRecursive;
+        settings.noupdate = res.m_noUpdate;
+        settings.exclude = res.m_exclude;
 
-        m_pDS->close();
+        if(odb_transaction)
+          odb_transaction->commit();
         sourcePath = path;
         return true;
       }
@@ -829,17 +939,15 @@ bool CVideoDatabase::GetSourcePath(const std::string &path, std::string &sourceP
     bool found = false;
     while (URIUtils::GetParentPath(strPath1, strParent))
     {
-      std::string strSQL = PrepareSQL("SELECT path.strContent, path.strScraper, path.scanRecursive, path.useFolderNames, path.noUpdate, path.exclude FROM path WHERE strPath = '%s'", strParent.c_str());
-      if (m_pDS->query(strSQL) && !m_pDS->eof())
+      CODBPath res;
+      if (m_cdb.getDB()->query_one<CODBPath>(query::path == strParent, res))
       {
-        std::string strContent = m_pDS->fv(0).get_asString();
-        std::string strScraper = m_pDS->fv(1).get_asString();
-        if (!strContent.empty() && !strScraper.empty())
+        if (!res.m_content.empty() && !res.m_scraper.empty())
         {
-          settings.parent_name_root = settings.parent_name = m_pDS->fv(2).get_asBool();
-          settings.recurse = m_pDS->fv(3).get_asInt();
-          settings.noupdate = m_pDS->fv(4).get_asBool();
-          settings.exclude = m_pDS->fv(5).get_asBool();
+          settings.parent_name_root = settings.parent_name = res.m_useFolderNames;
+          settings.recurse = res.m_scanRecursive;
+          settings.noupdate = res.m_noUpdate;
+          settings.exclude = res.m_exclude;
           found = true;
           break;
         }
@@ -847,13 +955,20 @@ bool CVideoDatabase::GetSourcePath(const std::string &path, std::string &sourceP
 
       strPath1 = strParent;
     }
-    m_pDS->close();
+    
+    if(odb_transaction)
+      odb_transaction->commit();
+    //m_pDS->close();
 
     if (found)
     {
       sourcePath = strParent;
       return true;
     }
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s exception - %s", __FUNCTION__, e.what());
   }
   catch (...)
   {
@@ -869,8 +984,8 @@ int CVideoDatabase::AddFile(const std::string& strFileNameAndPath)
   try
   {
     int idFile;
-    if (NULL == m_pDB.get()) return -1;
-    if (NULL == m_pDS.get()) return -1;
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    typedef odb::query<CODBFile> query;
 
     std::string strFileName, strPath;
     SplitPath(strFileNameAndPath,strPath,strFileName);
@@ -878,22 +993,29 @@ int CVideoDatabase::AddFile(const std::string& strFileNameAndPath)
     int idPath = AddPath(strPath);
     if (idPath < 0)
       return -1;
+    
+    std::shared_ptr<CODBPath> path(new CODBPath);
+    if (!m_cdb.getDB()->query_one<CODBPath>(odb::query<CODBPath>::idPath == idPath, *path))
+      return -1;
 
-    std::string strSQL=PrepareSQL("select idFile from files where strFileName='%s' and idPath=%i", strFileName.c_str(),idPath);
-
-    m_pDS->query(strSQL);
-    if (m_pDS->num_rows() > 0)
+    CODBFile file;
+    if (m_cdb.getDB()->query_one<CODBFile>(query::filename == strFileName && query::path->idPath == idPath, file))
     {
-      idFile = m_pDS->fv("idFile").get_asInt() ;
-      m_pDS->close();
-      return idFile;
+      if(odb_transaction)
+        odb_transaction->commit();
+      return file.m_idFile;
     }
-    m_pDS->close();
-
-    strSQL=PrepareSQL("insert into files (idFile, idPath, strFileName) values(NULL, %i, '%s')", idPath, strFileName.c_str());
-    m_pDS->exec(strSQL);
-    idFile = (int)m_pDS->lastinsertid();
-    return idFile;
+    
+    file.m_path = path;
+    file.m_filename = strFileName;
+    m_cdb.getDB()->persist(file);
+    if(odb_transaction)
+      odb_transaction->commit();
+    return file.m_idFile;
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s exception on addfile (%s) - %s", __FUNCTION__, strSQL.c_str(), e.what());
   }
   catch (...)
   {
@@ -922,8 +1044,8 @@ void CVideoDatabase::UpdateFileDateAdded(int idFile, const std::string& strFileN
   CDateTime finalDateAdded = dateAdded;
   try
   {
-    if (NULL == m_pDB.get()) return;
-    if (NULL == m_pDS.get()) return;
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    typedef odb::query<CODBFile> query;
 
     if (!finalDateAdded.IsValid())
     {
@@ -937,8 +1059,20 @@ void CVideoDatabase::UpdateFileDateAdded(int idFile, const std::string& strFileN
       if (!finalDateAdded.IsValid())
         finalDateAdded = CDateTime::GetCurrentDateTime();
     }
-
-    m_pDS->exec(PrepareSQL("UPDATE files SET dateAdded='%s' WHERE idFile=%d", finalDateAdded.GetAsDBDateTime().c_str(), idFile));
+    
+    CODBFile file;
+    if (!m_cdb.getDB()->query_one<CODBFile>(query::idFile == idFile, file))
+      return;
+    
+    file.m_dateAdded = finalDateAdded.GetAsDBDateTime();
+    m_cdb.getDB()->update(file);
+    
+    if(odb_transaction)
+      odb_transaction->commit();
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s (%s, %s) exception - ", __FUNCTION__, CURL::GetRedacted(strFileNameAndPath).c_str(), finalDateAdded.GetAsDBDateTime().c_str(), e.what());
   }
   catch (...)
   {
@@ -950,16 +1084,32 @@ bool CVideoDatabase::SetPathHash(const std::string &path, const std::string &has
 {
   try
   {
-    if (NULL == m_pDB.get()) return false;
-    if (NULL == m_pDS.get()) return false;
+    //if (NULL == m_pDB.get()) return false;
+    //if (NULL == m_pDS.get()) return false;
 
     int idPath = AddPath(path);
     if (idPath < 0) return false;
+    
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    typedef odb::query<CODBPath> query;
+    
+    CODBPath odb_path;
+    if(m_cdb.getDB()->query_one<CODBPath>(query::idPath == idPath, odb_path))
+    {
+      odb_path.m_hash = hash;
+      m_cdb.getDB()->update (odb_path);
+    }
+    if(odb_transaction)
+      odb_transaction->commit();
 
-    std::string strSQL=PrepareSQL("update path set strHash='%s' where idPath=%ld", hash.c_str(), idPath);
-    m_pDS->exec(strSQL);
+    //std::string strSQL=PrepareSQL("update path set strHash='%s' where idPath=%ld", hash.c_str(), idPath);
+    //m_pDS->exec(strSQL);
 
     return true;
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s (%s, %s) exception - %s", __FUNCTION__, path.c_str(), hash.c_str(), e.what());
   }
   catch (...)
   {
@@ -1054,15 +1204,28 @@ int CVideoDatabase::GetFileId(const std::string& strFilenameAndPath)
 {
   try
   {
-    if (NULL == m_pDB.get()) return -1;
-    if (NULL == m_pDS.get()) return -1;
+    //if (NULL == m_pDB.get()) return -1;
+    //if (NULL == m_pDS.get()) return -1;
     std::string strPath, strFileName;
     SplitPath(strFilenameAndPath,strPath,strFileName);
 
     int idPath = GetPathId(strPath);
     if (idPath >= 0)
     {
-      std::string strSQL;
+      std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+      
+      typedef odb::query<CODBFile> query;
+      CODBFile res;
+      
+      if(m_cdb.getDB()->query_one<CODBFile>(query::filename == strFileName && query::path->idPath == idPath, res))
+      {
+        return res.m_idFile;
+      }
+      
+      if(odb_transaction)
+        odb_transaction->commit();
+      
+      /*std::string strSQL;
       strSQL=PrepareSQL("select idFile from files where strFileName='%s' and idPath=%i", strFileName.c_str(),idPath);
       m_pDS->query(strSQL);
       if (m_pDS->num_rows() > 0)
@@ -1070,8 +1233,12 @@ int CVideoDatabase::GetFileId(const std::string& strFilenameAndPath)
         int idFile = m_pDS->fv("files.idFile").get_asInt();
         m_pDS->close();
         return idFile;
-      }
+      }*/
     }
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s (%s) exception - %s", __FUNCTION__, strFilenameAndPath.c_str(), e.what());
   }
   catch (...)
   {
@@ -1097,8 +1264,8 @@ int CVideoDatabase::GetMovieId(const std::string& strFilenameAndPath)
 {
   try
   {
-    if (NULL == m_pDB.get()) return -1;
-    if (NULL == m_pDS.get()) return -1;
+    //if (NULL == m_pDB.get()) return -1;
+    //if (NULL == m_pDS.get()) return -1;
     int idMovie = -1;
 
     // needed for query parameters
@@ -1118,8 +1285,28 @@ int CVideoDatabase::GetMovieId(const std::string& strFilenameAndPath)
 
     if (idFile == -1 && strPath != strFilenameAndPath)
       return -1;
+    
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    
+    if (idFile == -1)
+    {
+      typedef odb::query<ODBView_Movie_File_Path> query;
+      ODBView_Movie_File_Path res;
+      if (m_cdb.getDB()->query_one<ODBView_Movie_File_Path>(query::CODBPath::idPath == idPath, res))
+        idMovie = res.movie->m_idMovie;
+    }
+    else
+    {
+      typedef odb::query<CODBMovie> query;
+      CODBMovie res;
+      if (m_cdb.getDB()->query_one<CODBMovie>(query::file->idFile == idFile, res))
+        idMovie =res.m_idMovie;
+    }
+    
+    if(odb_transaction)
+      odb_transaction->commit();
 
-    std::string strSQL;
+    /*std::string strSQL;
     if (idFile == -1)
       strSQL=PrepareSQL("select idMovie from movie join files on files.idFile=movie.idFile where files.idPath=%i",idPath);
     else
@@ -1129,9 +1316,13 @@ int CVideoDatabase::GetMovieId(const std::string& strFilenameAndPath)
     m_pDS->query(strSQL);
     if (m_pDS->num_rows() > 0)
       idMovie = m_pDS->fv("idMovie").get_asInt();
-    m_pDS->close();
+    m_pDS->close();*/
 
     return idMovie;
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s (%s) exception - %s", __FUNCTION__, strFilenameAndPath.c_str(), e.what());
   }
   catch (...)
   {
@@ -1279,22 +1470,36 @@ int CVideoDatabase::AddMovie(const std::string& strFilenameAndPath)
 {
   try
   {
-    if (NULL == m_pDB.get()) return -1;
-    if (NULL == m_pDS.get()) return -1;
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
 
     int idMovie = GetMovieId(strFilenameAndPath);
     if (idMovie < 0)
     {
-      int idFile = AddFile(strFilenameAndPath);
+      int idFile = AddFile(strFilenameAndPath); //TODO: Should return the file object
       if (idFile < 0)
         return -1;
       UpdateFileDateAdded(idFile, strFilenameAndPath);
-      std::string strSQL=PrepareSQL("insert into movie (idMovie, idFile) values (NULL, %i)", idFile);
-      m_pDS->exec(strSQL);
-      idMovie = (int)m_pDS->lastinsertid();
+      
+      std::shared_ptr<CODBFile> odb_file(new CODBFile);
+      if (!m_cdb.getDB()->query_one<CODBFile>(odb::query<CODBFile>::idFile == idFile, *odb_file))
+        return -1;
+      
+      CODBMovie movie;
+      movie.m_file = odb_file;
+      
+      m_cdb.getDB()->persist(movie);
+      
+      idMovie = (int)movie.m_idMovie;
     }
+    
+    if(odb_transaction)
+      odb_transaction->commit();
 
     return idMovie;
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s (%s) exception - %s", __FUNCTION__, strFilenameAndPath.c_str(), e.what());
   }
   catch (...)
   {
@@ -2238,7 +2443,7 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
 {
   try
   {
-    BeginTransaction();
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
 
     if (idMovie < 0)
       idMovie = GetMovieId(strFilenameAndPath);
@@ -2257,6 +2462,13 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
         return idMovie;
       }
     }
+    
+    CODBMovie odb_movie;
+    if (!m_cdb.getDB()->query_one<CODBMovie>(odb::query<CODBMovie>::idMovie == idMovie, odb_movie))
+      return idMovie;
+    
+    //We need the file object many times below
+    odb_movie.m_file.load();
 
     // update dateadded if it's set
     if (details.m_dateAdded.IsValid())
@@ -2267,35 +2479,201 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
       UpdateFileDateAdded(details.m_iFileId, strFilenameAndPath, details.m_dateAdded);
     }
 
-    AddCast(idMovie, "movie", details.m_cast);
-    AddLinksToItem(idMovie, MediaTypeMovie, "genre", details.m_genre);
-    AddLinksToItem(idMovie, MediaTypeMovie, "studio", details.m_studio);
-    AddLinksToItem(idMovie, MediaTypeMovie, "country", details.m_country);
-    AddLinksToItem(idMovie, MediaTypeMovie, "tag", details.m_tags);
-    AddActorLinksToItem(idMovie, MediaTypeMovie, "director", details.m_director);
-    AddActorLinksToItem(idMovie, MediaTypeMovie, "writer", details.m_writingCredits);
+    //TODO: should be moved into its own function
+    //TODO: Make only changes, not full recreate
+    for (auto& i: odb_movie.m_actors)
+    {
+      m_cdb.getDB()->erase(*i);
+    }
+    odb_movie.m_actors.clear();
+    
+    for (auto& i: details.m_cast)
+    {
+      std::shared_ptr<CODBPerson> person(new CODBPerson);
+      if (!m_cdb.getDB()->query_one<CODBPerson>(odb::query<CODBPerson>::name == i.strName, *person))
+      {
+        //person->m_name = StringUtils::Trim(i.strName).substr(0,255);
+        person->m_name = i.strName;
+        person->m_art_urls = i.thumbUrl.m_xml; //TODO: Definitely not correct, needs to be corrected
+        m_cdb.getDB()->persist(person);
+      }
+
+      std::shared_ptr<CODBPersonLink> link(new CODBPersonLink);
+      link->m_person = person;
+      link->m_role = i.strRole;
+      m_cdb.getDB()->persist(link);
+      odb_movie.m_actors.push_back(link);
+    }
+    //AddCast(idMovie, "movie", details.m_cast);
+    
+    //TODO: should be moved into its own function
+    //TODO: Make only changes, not full recreate
+    odb_movie.m_genres.clear();
+    for (auto& i: details.m_genre)
+    {
+      std::shared_ptr<CODBGenre> genre(new CODBGenre);
+      if (!m_cdb.getDB()->query_one<CODBGenre>(odb::query<CODBGenre>::name == i, *genre))
+      {
+        genre->m_name = i;
+        m_cdb.getDB()->persist(genre);
+      }
+      odb_movie.m_genres.push_back(genre);
+    }
+    //AddLinksToItem(idMovie, MediaTypeMovie, "genre", details.m_genre);
+    
+    //TODO: Make only changes, not full recreate
+    odb_movie.m_studios.clear();
+    for (auto& i: details.m_studio)
+    {
+      odb_movie.m_studios.push_back(i);
+    }
+    //AddLinksToItem(idMovie, MediaTypeMovie, "studio", details.m_studio);
+    
+    //TODO: Make only changes, not full recreate
+    odb_movie.m_countries.clear();
+    for (auto& i: details.m_country)
+    {
+      odb_movie.m_countries.push_back(i);
+    }
+    //AddLinksToItem(idMovie, MediaTypeMovie, "country", details.m_country);
+    
+    //TODO: Make only changes, not full recreate
+    odb_movie.m_tags.clear();
+    for (auto& i: details.m_tags)
+    {
+      odb_movie.m_tags.push_back(i);
+    }
+    //AddLinksToItem(idMovie, MediaTypeMovie, "tag", details.m_tags);
+    
+    //TODO: should be moved into its own function
+    //TODO: Make only changes, not full recreate
+    for (auto& i: odb_movie.m_directors)
+    {
+      m_cdb.getDB()->erase(*i);
+    }
+    odb_movie.m_directors.clear();
+    for (auto& i:details.m_director)
+    {
+      std::shared_ptr<CODBPerson> person(new CODBPerson);
+      if (!m_cdb.getDB()->query_one<CODBPerson>(odb::query<CODBPerson>::name == i, *person))
+      {
+        //person->m_name = StringUtils::Trim(i).substr(0,255);
+        person->m_name = i;
+        m_cdb.getDB()->persist(person);
+      }
+      
+      std::shared_ptr<CODBPersonLink> link(new CODBPersonLink);
+      link->m_person = person;
+      m_cdb.getDB()->persist(link);
+      odb_movie.m_directors.push_back(link);
+    }
+    //AddActorLinksToItem(idMovie, MediaTypeMovie, "director", details.m_director);
+    
+    //TODO: should be moved into its own function
+    //TODO: Make only changes, not full recreate
+    for (auto& i: odb_movie.m_writingCredits)
+    {
+      m_cdb.getDB()->erase(*i);
+    }
+    odb_movie.m_writingCredits.clear();
+    for (auto& i: details.m_writingCredits)
+    {
+      std::shared_ptr<CODBPerson> person(new CODBPerson);
+      if (!m_cdb.getDB()->query_one<CODBPerson>(odb::query<CODBPerson>::name == i, *person))
+      {
+        //person->m_name = StringUtils::Trim(i).substr(0,255);
+        person->m_name = i;
+        m_cdb.getDB()->persist(person);
+      }
+      
+      std::shared_ptr<CODBPersonLink> link(new CODBPersonLink);
+      link->m_person = person;
+      m_cdb.getDB()->persist(link);
+      odb_movie.m_writingCredits.push_back(link);
+    }
+    //AddActorLinksToItem(idMovie, MediaTypeMovie, "writer", details.m_writingCredits);
 
     // add ratingsu
-    details.m_iIdRating = AddRatings(idMovie, MediaTypeMovie, details.m_ratings, details.GetDefaultRating());
+    //TODO: should be moved into its own function
+    details.m_iIdRating = -1;
+    odb_movie.m_ratings.clear();
+    for (auto& i: details.m_ratings)
+    {
+      std::shared_ptr<CODBRating> rating(new CODBRating);
+      typedef odb::query<CODBRating> query;
+      if (m_cdb.getDB()->query_one<CODBRating>(query::file->idFile == odb_movie.m_file->m_idFile
+                                               && query::ratingType == i.first
+                                               , *rating) )
+      {
+        rating->m_rating = i.second.rating;
+        rating->m_votes = i.second.votes;
+        m_cdb.getDB()->update(rating);
+      }
+      else
+      {
+        rating->m_file = odb_movie.m_file;
+        rating->m_rating = i.second.rating;
+        rating->m_votes = i.second.votes;
+        m_cdb.getDB()->persist(rating);
+      }
+      odb_movie.m_ratings.push_back(rating);
+    }
+    //details.m_iIdRating = AddRatings(idMovie, MediaTypeMovie, details.m_ratings, details.GetDefaultRating());
 
     // add unique ids
-    details.m_iIdUniqueID = AddUniqueIDs(idMovie, MediaTypeMovie, details);
+    for (auto& i: details.GetUniqueIDs())
+    {
+      std::shared_ptr<CODBUniqueID> uid(new CODBUniqueID);
+      typedef odb::query<CODBUniqueID> query;
+      if (m_cdb.getDB()->query_one<CODBUniqueID>(query::file->idFile == odb_movie.m_file->m_idFile
+                                                 && query::type == i.first
+                                                 , *uid))
+      {
+        uid->m_value = i.second;
+        m_cdb.getDB()->update(uid);
+      }
+      else
+      {
+        uid->m_type = i.first;
+        uid->m_value = i.second;
+        m_cdb.getDB()->persist(uid);
+      }
+      
+      if(uid->m_type == details.GetDefaultUniqueID())
+        odb_movie.m_defaultID = uid;
+    }
+    //details.m_iIdUniqueID = AddUniqueIDs(idMovie, MediaTypeMovie, details);
 
     // add set...
-    int idSet = -1;
     if (!details.m_strSet.empty())
     {
-      idSet = AddSet(details.m_strSet, details.m_strSetOverview);
+      std::shared_ptr<CODBSet> set(new CODBSet);
+      if (!m_cdb.getDB()->query_one<CODBSet>(odb::query<CODBSet>::name == details.m_strSet, *set))
+      {
+        set->m_name = details.m_strSet;
+        set->m_overview = details.m_strSetOverview;
+        m_cdb.getDB()->persist(set);
+      }
+      
+      //idSet = AddSet(details.m_strSet, details.m_strSetOverview);
       // add art if not available
-      std::map<std::string, std::string> setArt;
-      if (!GetArtForItem(idSet, MediaTypeVideoCollection, setArt))
-        SetArtForItem(idSet, MediaTypeVideoCollection, artwork);
+      if (set->m_artwork.empty())
+      {
+        for(const auto& i: artwork)
+          set->m_artwork.insert(std::make_pair(i.first, i.second));
+        m_cdb.getDB()->update(set);
+      }
+
+      odb_movie.m_set = set;
     }
 
     if (details.HasStreamDetails())
       SetStreamDetailsForFileId(details.m_streamDetails, GetFileId(strFilenameAndPath));
 
-    SetArtForItem(idMovie, MediaTypeMovie, artwork);
+    odb_movie.m_artwork.clear();
+    for(auto& i: artwork)
+      odb_movie.m_artwork.insert(std::make_pair(i.first, i.second));
+    //SetArtForItem(idMovie, MediaTypeMovie, artwork);
 
     if (!details.HasUniqueID() && details.HasYear())
     { // query DB for any movies matching online id and year
@@ -2327,30 +2705,29 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
     }
     // update our movie table (we know it was added already above)
     // and insert the new row
-    std::string sql = "UPDATE movie SET " + GetValueString(details, VIDEODB_ID_MIN, VIDEODB_ID_MAX, DbMovieOffsets);
-    if (idSet > 0)
-      sql += PrepareSQL(", idSet = %i", idSet);
-    else
-      sql += ", idSet = NULL";
     if (details.m_iUserRating > 0 && details.m_iUserRating < 11)
-      sql += PrepareSQL(", userrating = %i", details.m_iUserRating);
-    else
-      sql += ", userrating = NULL";
+      odb_movie.m_userrating = details.m_iUserRating;
     if (details.HasPremiered())
-      sql += PrepareSQL(", premiered = '%s'", details.GetPremiered().GetAsDBDate().c_str());
-    else
-      sql += PrepareSQL(", premiered = '%i'", details.GetYear());
-    sql += PrepareSQL(" where idMovie=%i", idMovie);
-    m_pDS->exec(sql);
-    CommitTransaction();
+      odb_movie.m_premiered = details.GetPremiered().GetAsDBDate();
+    //TODO: Needs to be converted to string
+    //else
+    //  odb_movie.m_premiered = details.GetYear();
+    
+    m_cdb.getDB()->update(odb_movie);
+    if(odb_transaction)
+      odb_transaction->commit();
 
     return idMovie;
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s (%s) exception - %s", __FUNCTION__, strFilenameAndPath.c_str(), e.what());
   }
   catch (...)
   {
     CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strFilenameAndPath.c_str());
   }
-  RollbackTransaction();
+  //RollbackTransaction();
   return -1;
 }
 
@@ -2863,43 +3240,58 @@ void CVideoDatabase::SetStreamDetailsForFileId(const CStreamDetails& details, in
 
   try
   {
-    BeginTransaction();
-    m_pDS->exec(PrepareSQL("DELETE FROM streamdetails WHERE idFile = %i", idFile));
+    //BeginTransaction();
+    //m_pDS->exec(PrepareSQL("DELETE FROM streamdetails WHERE idFile = %i", idFile));
+    m_cdb.getDB()->erase_query<CODBStreamDetails>(odb::query<CODBStreamDetails>::file->idFile == idFile);
+    
+    std::shared_ptr<CODBFile> odb_file(new CODBFile);
+    if (!m_cdb.getDB()->query_one<CODBFile>(odb::query<CODBFile>::idFile == idFile, *odb_file))
+      return;
 
     for (int i=1; i<=details.GetVideoStreamCount(); i++)
     {
-      m_pDS->exec(PrepareSQL("INSERT INTO streamdetails "
-        "(idFile, iStreamType, strVideoCodec, fVideoAspect, iVideoWidth, iVideoHeight, iVideoDuration, strStereoMode, strVideoLanguage) "
-        "VALUES (%i,%i,'%s',%f,%i,%i,%i,'%s','%s')",
-        idFile, (int)CStreamDetail::VIDEO,
-        details.GetVideoCodec(i).c_str(), details.GetVideoAspect(i),
-        details.GetVideoWidth(i), details.GetVideoHeight(i), details.GetVideoDuration(i),
-        details.GetStereoMode(i).c_str(),
-        details.GetVideoLanguage(i).c_str()));
+      CODBStreamDetails sd;
+      sd.m_file = odb_file;
+      sd.m_streamType = (int)CStreamDetail::VIDEO;
+      sd.m_videoCodec = details.GetVideoCodec(i);
+      sd.m_videoAspect = details.GetVideoAspect(i);
+      sd.m_videoWidth = details.GetVideoWidth(i);
+      sd.m_videoHeight = details.GetVideoHeight(i);
+      sd.m_videoDuration = details.GetVideoDuration(i);
+      sd.m_stereoMode = details.GetStereoMode(i);
+      sd.m_videoLanguage = details.GetVideoLanguage(i);
+      m_cdb.getDB()->persist(sd);
     }
     for (int i=1; i<=details.GetAudioStreamCount(); i++)
     {
-      m_pDS->exec(PrepareSQL("INSERT INTO streamdetails "
-        "(idFile, iStreamType, strAudioCodec, iAudioChannels, strAudioLanguage) "
-        "VALUES (%i,%i,'%s',%i,'%s')",
-        idFile, (int)CStreamDetail::AUDIO,
-        details.GetAudioCodec(i).c_str(), details.GetAudioChannels(i),
-        details.GetAudioLanguage(i).c_str()));
+      CODBStreamDetails sd;
+      sd.m_file = odb_file;
+      sd.m_streamType = (int)CStreamDetail::AUDIO;
+      sd.m_audioCodec = details.GetAudioCodec(i);
+      sd.m_audioChannels = details.GetAudioChannels(i);
+      sd.m_audioLanguage = details.GetAudioLanguage(i);
+      m_cdb.getDB()->persist(sd);
     }
     for (int i=1; i<=details.GetSubtitleStreamCount(); i++)
     {
-      m_pDS->exec(PrepareSQL("INSERT INTO streamdetails "
-        "(idFile, iStreamType, strSubtitleLanguage) "
-        "VALUES (%i,%i,'%s')",
-        idFile, (int)CStreamDetail::SUBTITLE,
-        details.GetSubtitleLanguage(i).c_str()));
+      CODBStreamDetails sd;
+      sd.m_file = odb_file;
+      sd.m_streamType = (int)CStreamDetail::SUBTITLE;
+      sd.m_subtitleLanguage = details.GetSubtitleLanguage(i);
+      m_cdb.getDB()->persist(sd);
     }
 
     // update the runtime information, if empty
     if (details.GetVideoDuration())
     {
+      CODBMovie movie;
+      if (m_cdb.getDB()->query_one<CODBMovie>(odb::query<CODBMovie>::file->idFile == odb_file->m_idFile, movie))
+      {
+        movie.m_runtime = details.GetVideoDuration();
+        m_cdb.getDB()->update(movie);
+      }
+      
       std::vector<std::pair<std::string, int> > tables;
-      tables.emplace_back("movie", VIDEODB_ID_RUNTIME);
       tables.emplace_back("episode", VIDEODB_ID_EPISODE_RUNTIME);
       tables.emplace_back("musicvideo", VIDEODB_ID_MUSICVIDEO_RUNTIME);
       for (const auto &i : tables)
@@ -2912,9 +3304,12 @@ void CVideoDatabase::SetStreamDetailsForFileId(const CStreamDetails& details, in
 
     CommitTransaction();
   }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s (%i) exception - %s", __FUNCTION__, idFile, e.what());
+  }
   catch (...)
   {
-    RollbackTransaction();
     CLog::Log(LOGERROR, "%s (%i) failed", __FUNCTION__, idFile);
   }
 }
@@ -3263,36 +3658,39 @@ void CVideoDatabase::DeleteMovie(int idMovie, bool bKeepId /* = false */)
 
   try
   {
-    if (NULL == m_pDB.get()) return ;
-    if (NULL == m_pDS.get()) return ;
-
-    BeginTransaction();
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
 
     // keep the movie table entry, linking to tv shows, and bookmarks
     // so we can update the data in place
     // the ancilliary tables are still purged
     if (!bKeepId)
     {
-      int idFile = GetDbId(PrepareSQL("SELECT idFile FROM movie WHERE idMovie=%i", idMovie));
-      std::string path = GetSingleValue(PrepareSQL("SELECT strPath FROM path JOIN files ON files.idPath=path.idPath WHERE files.idFile=%i", idFile));
+      CODBMovie res;
+      if(!m_cdb.getDB()->query_one<CODBMovie>(odb::query<CODBMovie>::idMovie == idMovie, res))
+        return;
+      
+      std::string path = res.m_file->m_path->m_path;
       if (!path.empty())
         InvalidatePathHash(path);
-
-      std::string strSQL = PrepareSQL("delete from movie where idMovie=%i", idMovie);
-      m_pDS->exec(strSQL);
+      
+      m_cdb.getDB()->erase(res);
     }
 
     //! @todo move this below CommitTransaction() once UPnP doesn't rely on this anymore
     if (!bKeepId)
       AnnounceRemove(MediaTypeMovie, idMovie);
 
-    CommitTransaction();
+    if(odb_transaction)
+      odb_transaction->commit();
 
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s exception - %s", __FUNCTION__, e.what());
   }
   catch (...)
   {
     CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
-    RollbackTransaction();
   }
 }
 
@@ -4588,29 +4986,62 @@ void CVideoDatabase::SetScraperForPath(const std::string& filePath, const Scrape
 
   try
   {
-    if (NULL == m_pDB.get()) return ;
-    if (NULL == m_pDS.get()) return ;
-
     int idPath = AddPath(filePath);
     if (idPath < 0)
       return;
+    
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    typedef odb::query<CODBPath> query;
+    
+    CODBPath path;
+    if (!m_cdb.getDB()->query_one<CODBPath>(query::idPath == idPath, path))
+    {
+      if(odb_transaction)
+        odb_transaction->rollback();
+      return;
+    }
 
     // Update
     std::string strSQL;
     if (settings.exclude)
     { //NB See note in ::GetScraperForPath about strContent=='none'
-      strSQL=PrepareSQL("update path set strContent='', strScraper='', scanRecursive=0, useFolderNames=0, strSettings='', noUpdate=0 , exclude=1 where idPath=%i", idPath);
+      path.m_content = "";
+      path.m_scraper = "";
+      path.m_scanRecursive = 0;
+      path.m_useFolderNames = false;
+      path.m_settings = "";
+      path.m_noUpdate = false;
+      path.m_exclude = true;
     }
     else if(!scraper)
     { // catch clearing content, but not excluding
-      strSQL=PrepareSQL("update path set strContent='', strScraper='', scanRecursive=0, useFolderNames=0, strSettings='', noUpdate=0, exclude=0 where idPath=%i", idPath);
+      path.m_content = "";
+      path.m_scraper = "";
+      path.m_scanRecursive = 0;
+      path.m_useFolderNames = false;
+      path.m_settings = "";
+      path.m_noUpdate = false;
+      path.m_exclude = false;
     }
     else
     {
       std::string content = TranslateContent(scraper->Content());
-      strSQL=PrepareSQL("update path set strContent='%s', strScraper='%s', scanRecursive=%i, useFolderNames=%i, strSettings='%s', noUpdate=%i, exclude=0 where idPath=%i", content.c_str(), scraper->ID().c_str(),settings.recurse,settings.parent_name,scraper->GetPathSettings().c_str(),settings.noupdate, idPath);
+      
+      path.m_content = content;
+      path.m_scraper = scraper->ID();
+      path.m_scanRecursive = settings.recurse;
+      path.m_useFolderNames = settings.parent_name;
+      path.m_settings = scraper->GetPathSettings();
+      path.m_noUpdate = settings.noupdate;
+      path.m_exclude = false;
     }
-    m_pDS->exec(strSQL);
+    m_cdb.getDB()->update(path);
+    if(odb_transaction)
+      odb_transaction->commit();
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s (%s) exception - %s", __FUNCTION__, filePath.c_str(), e.what());
   }
   catch (...)
   {
@@ -7145,7 +7576,7 @@ ScraperPtr CVideoDatabase::GetScraperForPath(const std::string& strPath, SScanSe
   foundDirectly = false;
   try
   {
-    if (strPath.empty() || !m_pDB.get() || !m_pDS.get()) return ScraperPtr();
+    if (strPath.empty()) return ScraperPtr();
 
     ScraperPtr scraper;
     std::string strPath2;
@@ -7158,33 +7589,38 @@ ScraperPtr CVideoDatabase::GetScraperForPath(const std::string& strPath, SScanSe
     std::string strPath1 = URIUtils::GetDirectory(strPath2);
     int idPath = GetPathId(strPath1);
 
-    if (idPath > -1)
+    /*if (idPath > -1)
     {
       std::string strSQL=PrepareSQL("select path.strContent,path.strScraper,path.scanRecursive,path.useFolderNames,path.strSettings,path.noUpdate,path.exclude from path where path.idPath=%i",idPath);
       m_pDS->query( strSQL );
-    }
+    }*/
 
     int iFound = 1;
     CONTENT_TYPE content = CONTENT_NONE;
-    if (!m_pDS->eof())
+    
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    typedef odb::query<CODBPath> query;
+    
+    CODBPath path;
+    if ( idPath > -1 && m_cdb.getDB()->query_one<CODBPath>(query::idPath == idPath ,path) )
     { // path is stored in db
 
-      if (m_pDS->fv("path.exclude").get_asBool())
+      if (path.m_exclude)
       {
         settings.exclude = true;
-        m_pDS->close();
+        //m_pDS->close();
         return ScraperPtr();
       }
       settings.exclude = false;
 
       // try and ascertain scraper for this path
-      std::string strcontent = m_pDS->fv("path.strContent").get_asString();
+      std::string strcontent = path.m_content;
       StringUtils::ToLower(strcontent);
       content = TranslateContent(strcontent);
 
       //FIXME paths stored should not have empty strContent
       //assert(content != CONTENT_NONE);
-      std::string scraperID = m_pDS->fv("path.strScraper").get_asString();
+      std::string scraperID = path.m_scraper;
 
       AddonPtr addon;
       if (!scraperID.empty() && CAddonMgr::GetInstance().GetAddon(scraperID, addon))
@@ -7194,10 +7630,10 @@ ScraperPtr CVideoDatabase::GetScraperForPath(const std::string& strPath, SScanSe
           return ScraperPtr();
 
         // store this path's content & settings
-        scraper->SetPathSettings(content, m_pDS->fv("path.strSettings").get_asString());
-        settings.parent_name = m_pDS->fv("path.useFolderNames").get_asBool();
-        settings.recurse = m_pDS->fv("path.scanRecursive").get_asInt();
-        settings.noupdate = m_pDS->fv("path.noUpdate").get_asBool();
+        scraper->SetPathSettings(content, path.m_settings);
+        settings.parent_name = path.m_useFolderNames;
+        settings.recurse = path.m_scanRecursive;
+        settings.noupdate = path.m_noUpdate;
       }
     }
 
@@ -7209,20 +7645,19 @@ ScraperPtr CVideoDatabase::GetScraperForPath(const std::string& strPath, SScanSe
       {
         iFound++;
 
-        std::string strSQL=PrepareSQL("select path.strContent,path.strScraper,path.scanRecursive,path.useFolderNames,path.strSettings,path.noUpdate, path.exclude from path where strPath='%s'",strParent.c_str());
-        m_pDS->query(strSQL);
+        /*std::string strSQL=PrepareSQL("select path.strContent,path.strScraper,path.scanRecursive,path.useFolderNames,path.strSettings,path.noUpdate, path.exclude from path where strPath='%s'",strParent.c_str());
+        m_pDS->query(strSQL);*/
 
         CONTENT_TYPE content = CONTENT_NONE;
-        if (!m_pDS->eof())
+        if (m_cdb.getDB()->query_one<CODBPath>(query::path == strParent ,path))
         {
-
-          std::string strcontent = m_pDS->fv("path.strContent").get_asString();
+          std::string strcontent = path.m_content;
           StringUtils::ToLower(strcontent);
-          if (m_pDS->fv("path.exclude").get_asBool())
+          if (path.m_exclude)
           {
             settings.exclude = true;
             scraper.reset();
-            m_pDS->close();
+            //m_pDS->close();
             break;
           }
 
@@ -7230,13 +7665,13 @@ ScraperPtr CVideoDatabase::GetScraperForPath(const std::string& strPath, SScanSe
 
           AddonPtr addon;
           if (content != CONTENT_NONE &&
-              CAddonMgr::GetInstance().GetAddon(m_pDS->fv("path.strScraper").get_asString(), addon))
+              CAddonMgr::GetInstance().GetAddon(path.m_scraper, addon))
           {
             scraper = std::dynamic_pointer_cast<CScraper>(addon);
-            scraper->SetPathSettings(content, m_pDS->fv("path.strSettings").get_asString());
-            settings.parent_name = m_pDS->fv("path.useFolderNames").get_asBool();
-            settings.recurse = m_pDS->fv("path.scanRecursive").get_asInt();
-            settings.noupdate = m_pDS->fv("path.noUpdate").get_asBool();
+            scraper->SetPathSettings(content, path.m_settings);
+            settings.parent_name = path.m_useFolderNames;
+            settings.recurse = path.m_scanRecursive;
+            settings.noupdate = path.m_noUpdate;
             settings.exclude = false;
             break;
           }
@@ -7244,7 +7679,10 @@ ScraperPtr CVideoDatabase::GetScraperForPath(const std::string& strPath, SScanSe
         strPath1 = strParent;
       }
     }
-    m_pDS->close();
+    
+    if(odb_transaction)
+      odb_transaction->commit();
+    //m_pDS->close();
 
     if (!scraper || scraper->Content() == CONTENT_NONE)
       return ScraperPtr();
@@ -7278,6 +7716,10 @@ ScraperPtr CVideoDatabase::GetScraperForPath(const std::string& strPath, SScanSe
     }
     foundDirectly = (iFound == 1);
     return scraper;
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s exception - %s", __FUNCTION__, e.what());
   }
   catch (...)
   {

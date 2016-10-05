@@ -31,6 +31,8 @@
 #include "video/VideoDbUrl.h"
 #include "VideoInfoTag.h"
 
+#include "../dbwrappers/CommonDatabase.h"
+
 class CFileItem;
 class CFileItemList;
 class CVideoSettings;
@@ -423,6 +425,8 @@ public:
 
   CVideoDatabase(void);
   virtual ~CVideoDatabase(void);
+  
+  CCommonDatabase m_cdb;
 
   virtual bool Open();
   virtual bool CommitTransaction();
