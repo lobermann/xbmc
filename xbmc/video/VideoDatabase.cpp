@@ -1072,7 +1072,7 @@ void CVideoDatabase::UpdateFileDateAdded(int idFile, const std::string& strFileN
   }
   catch (std::exception& e)
   {
-    CLog::Log(LOGERROR, "%s (%s, %s) exception - ", __FUNCTION__, CURL::GetRedacted(strFileNameAndPath).c_str(), finalDateAdded.GetAsDBDateTime().c_str(), e.what());
+    CLog::Log(LOGERROR, "%s (%s, %s) exception - %s", __FUNCTION__, CURL::GetRedacted(strFileNameAndPath).c_str(), finalDateAdded.GetAsDBDateTime().c_str(), e.what());
   }
   catch (...)
   {
@@ -2492,8 +2492,8 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
       std::shared_ptr<CODBPerson> person(new CODBPerson);
       if (!m_cdb.getDB()->query_one<CODBPerson>(odb::query<CODBPerson>::name == i.strName, *person))
       {
-        //person->m_name = StringUtils::Trim(i.strName).substr(0,255);
-        person->m_name = i.strName;
+        std::string trim_name(i.strName);
+        person->m_name = StringUtils::Trim(trim_name).substr(0,255);
         person->m_art_urls = i.thumbUrl.m_xml; //TODO: Definitely not correct, needs to be corrected
         m_cdb.getDB()->persist(person);
       }
@@ -2504,7 +2504,6 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
       m_cdb.getDB()->persist(link);
       odb_movie.m_actors.push_back(link);
     }
-    //AddCast(idMovie, "movie", details.m_cast);
     
     //TODO: should be moved into its own function
     //TODO: Make only changes, not full recreate
@@ -2519,7 +2518,6 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
       }
       odb_movie.m_genres.push_back(genre);
     }
-    //AddLinksToItem(idMovie, MediaTypeMovie, "genre", details.m_genre);
     
     //TODO: Make only changes, not full recreate
     odb_movie.m_studios.clear();
@@ -2527,7 +2525,6 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
     {
       odb_movie.m_studios.push_back(i);
     }
-    //AddLinksToItem(idMovie, MediaTypeMovie, "studio", details.m_studio);
     
     //TODO: Make only changes, not full recreate
     odb_movie.m_countries.clear();
@@ -2535,7 +2532,6 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
     {
       odb_movie.m_countries.push_back(i);
     }
-    //AddLinksToItem(idMovie, MediaTypeMovie, "country", details.m_country);
     
     //TODO: Make only changes, not full recreate
     odb_movie.m_tags.clear();
@@ -2543,7 +2539,6 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
     {
       odb_movie.m_tags.push_back(i);
     }
-    //AddLinksToItem(idMovie, MediaTypeMovie, "tag", details.m_tags);
     
     //TODO: should be moved into its own function
     //TODO: Make only changes, not full recreate
@@ -2557,8 +2552,8 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
       std::shared_ptr<CODBPerson> person(new CODBPerson);
       if (!m_cdb.getDB()->query_one<CODBPerson>(odb::query<CODBPerson>::name == i, *person))
       {
-        //person->m_name = StringUtils::Trim(i).substr(0,255);
-        person->m_name = i;
+        std::string trim_name(i);
+        person->m_name = StringUtils::Trim(trim_name).substr(0,255);
         m_cdb.getDB()->persist(person);
       }
       
@@ -2567,7 +2562,6 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
       m_cdb.getDB()->persist(link);
       odb_movie.m_directors.push_back(link);
     }
-    //AddActorLinksToItem(idMovie, MediaTypeMovie, "director", details.m_director);
     
     //TODO: should be moved into its own function
     //TODO: Make only changes, not full recreate
@@ -2581,8 +2575,8 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
       std::shared_ptr<CODBPerson> person(new CODBPerson);
       if (!m_cdb.getDB()->query_one<CODBPerson>(odb::query<CODBPerson>::name == i, *person))
       {
-        //person->m_name = StringUtils::Trim(i).substr(0,255);
-        person->m_name = i;
+        std::string trim_name(i);
+        person->m_name = StringUtils::Trim(trim_name).substr(0,255);
         m_cdb.getDB()->persist(person);
       }
       
@@ -2591,7 +2585,6 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
       m_cdb.getDB()->persist(link);
       odb_movie.m_writingCredits.push_back(link);
     }
-    //AddActorLinksToItem(idMovie, MediaTypeMovie, "writer", details.m_writingCredits);
 
     // add ratingsu
     //TODO: should be moved into its own function
@@ -2618,7 +2611,6 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
       }
       odb_movie.m_ratings.push_back(rating);
     }
-    //details.m_iIdRating = AddRatings(idMovie, MediaTypeMovie, details.m_ratings, details.GetDefaultRating());
 
     // add unique ids
     for (auto& i: details.GetUniqueIDs())
@@ -2642,7 +2634,6 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
       if(uid->m_type == details.GetDefaultUniqueID())
         odb_movie.m_defaultID = uid;
     }
-    //details.m_iIdUniqueID = AddUniqueIDs(idMovie, MediaTypeMovie, details);
 
     // add set...
     if (!details.m_strSet.empty())
@@ -2673,45 +2664,55 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
     odb_movie.m_artwork.clear();
     for(auto& i: artwork)
       odb_movie.m_artwork.insert(std::make_pair(i.first, i.second));
-    //SetArtForItem(idMovie, MediaTypeMovie, artwork);
 
     if (!details.HasUniqueID() && details.HasYear())
     { // query DB for any movies matching online id and year
-      std::string strSQL = PrepareSQL("SELECT files.playCount, files.lastPlayed "
-                                      "FROM movie "
-                                      "  INNER JOIN files "
-                                      "    ON files.idFile=movie.idFile "
-                                      "  JOIN uniqueid "
-                                      "    ON movie.idMovie=uniqueid.media_id AND uniqueid.media_type='movie' AND uniqueid.value='%s'"
-                                      "WHERE movie.premiered LIKE '%i%%' AND movie.idMovie!=%i AND files.playCount > 0", 
-                                      details.GetUniqueID().c_str(), details.GetYear(), idMovie);
-      m_pDS->query(strSQL);
-
-      if (!m_pDS->eof())
+      ODBView_Movie_File_UID res;
+      if (m_cdb.getDB()->query_one<ODBView_Movie_File_UID>(odb::query<ODBView_Movie_File_UID>::CODBUniqueID::value == details.GetUniqueID()
+                                                           && odb::query<ODBView_Movie_File_UID>::CODBMovie::premiered.like(std::to_string(details.GetYear())+"%")
+                                                           && odb::query<ODBView_Movie_File_UID>::CODBMovie::idMovie != idMovie
+                                                           && odb::query<ODBView_Movie_File_UID>::CODBFile::playCount > 0
+                                                           , res))
       {
-        int playCount = m_pDS->fv("files.playCount").get_asInt();
-
-        CDateTime lastPlayed;
-        lastPlayed.SetFromDBDateTime(m_pDS->fv("files.lastPlayed").get_asString());
-
-        int idFile = GetFileId(strFilenameAndPath);
-
-        // update with playCount and lastPlayed
-        strSQL = PrepareSQL("update files set playCount=%i,lastPlayed='%s' where idFile=%i", playCount, lastPlayed.GetAsDBDateTime().c_str(), idFile);
-        m_pDS->exec(strSQL);
+        CODBFile matching_file;
+        if (m_cdb.getDB()->query_one<CODBFile>(odb::query<CODBFile>::idFile == GetFileId(strFilenameAndPath), matching_file))
+        {
+          matching_file.m_playCount = res.file->m_playCount;
+          matching_file.m_lastPlayed = res.file->m_lastPlayed;
+          m_cdb.getDB()->update(matching_file);
+        }
       }
-
-      m_pDS->close();
     }
+    
     // update our movie table (we know it was added already above)
     // and insert the new row
+    odb_movie.m_title = details.m_strTitle;
+    odb_movie.m_plot = details.m_strPlot;
+    odb_movie.m_plotoutline = details.m_strPlotOutline;
+    odb_movie.m_tagline = details.m_strTagLine;
+    odb_movie.m_credits = StringUtils::Join(details.m_writingCredits, g_advancedSettings.m_videoItemSeparator);
+    odb_movie.m_thumbUrl = details.m_strPictureURL.m_xml;
+    odb_movie.m_sortTitle = details.m_strSortTitle;
+    odb_movie.m_runtime = details.m_duration;
+    odb_movie.m_mpaa = details.m_strMPAARating;
+    odb_movie.m_top250 = details.m_iTop250;
+    odb_movie.m_originalTitle = details.m_strOriginalTitle;
+    odb_movie.m_thumbUrl_spoof = details.m_strPictureURL.m_spoof;
+    odb_movie.m_trailer = details.m_strTrailer;
+    odb_movie.m_fanart = details.m_fanart.m_xml;
+    
+    //TODO: Not sure if these mappings are still needed with the new relations
+    odb_movie.m_file->m_path.load();
+    odb_movie.m_basePath = odb_movie.m_file->m_path;
+    odb_movie.m_file->m_path->m_parentPath.load();
+    odb_movie.m_parentPath = odb_movie.m_file->m_path->m_parentPath;
+    
     if (details.m_iUserRating > 0 && details.m_iUserRating < 11)
       odb_movie.m_userrating = details.m_iUserRating;
     if (details.HasPremiered())
       odb_movie.m_premiered = details.GetPremiered().GetAsDBDate();
-    //TODO: Needs to be converted to string
-    //else
-    //  odb_movie.m_premiered = details.GetYear();
+    else
+      odb_movie.m_premiered = std::to_string(details.GetYear());
     
     m_cdb.getDB()->update(odb_movie);
     if(odb_transaction)
@@ -2727,7 +2728,6 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
   {
     CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strFilenameAndPath.c_str());
   }
-  //RollbackTransaction();
   return -1;
 }
 
@@ -5835,8 +5835,18 @@ void CVideoDatabase::UpdateMovieTitle(int idMovie, const std::string& strNewMovi
     else if (iType == VIDEODB_CONTENT_MOVIE_SETS)
     {
       CLog::Log(LOGINFO, "Changing Movie set:id:%i New Title:%s", idMovie, strNewMovieTitle.c_str());
-      std::string strSQL = PrepareSQL("UPDATE sets SET strSet='%s' WHERE idSet=%i", strNewMovieTitle.c_str(), idMovie );
-      m_pDS->exec(strSQL);
+      
+      std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+      
+      CODBSet set;
+      if (m_cdb.getDB()->query_one<CODBSet>(odb::query<CODBSet>::idSet == idMovie, set))
+      {
+        set.m_name = strNewMovieTitle;
+        m_cdb.getDB()->update(set);
+      }
+      
+      if(odb_transaction)
+        odb_transaction->commit();
     }
 
     if (!content.empty())

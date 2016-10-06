@@ -104,4 +104,14 @@ struct ODBView_Movie_File_Path
   std::shared_ptr<CODBPath> path;
 };
 
+#pragma db view object(CODBMovie) \
+  object(CODBFile: CODBMovie::m_file) \
+  object(CODBUniqueID: CODBMovie::m_file)
+struct ODBView_Movie_File_UID
+{
+  std::shared_ptr<CODBMovie> movie;
+  std::shared_ptr<CODBFile> file;
+  std::shared_ptr<CODBUniqueID> uid;
+};
+
 #endif /* ODBMOVIE_H */
