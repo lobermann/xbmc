@@ -47,7 +47,7 @@ void CCommonDatabase::init()
 {
   {
     odb::core::transaction t (m_db->begin());
-    odb::core::schema_catalog::create_schema (*m_db);
+    odb::core::schema_catalog::migrate (*m_db);
     t.commit();
   }
 }
