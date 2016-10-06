@@ -46,6 +46,8 @@
 #include <odb/odb_gen/ODBStreamDetails_odb.h>
 #include <odb/odb_gen/ODBUniqueID.h>
 #include <odb/odb_gen/ODBUniqueID_odb.h>
+#include <odb/odb_gen/ODBArt.h>
+#include <odb/odb_gen/ODBArt_odb.h>
 
 #include <algorithm>
 #include <map>
@@ -2519,6 +2521,13 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
         person->m_name = StringUtils::Trim(trim_name).substr(0,255);
         person->m_art_urls = i.thumbUrl.m_xml; //TODO: Definitely not correct, needs to be corrected
         m_cdb.getDB()->persist(person);
+
+        std::shared_ptr<CODBArt> art(new CODBArt);
+        art->m_idMedia = idMovie;
+        art->m_media_type = "actor";
+        art->m_type = "thumb";
+        art->m_url = i.thumb;
+        m_cdb.getDB()->persist(art);
       }
 
       std::shared_ptr<CODBPersonLink> link(new CODBPersonLink);
