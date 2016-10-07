@@ -222,8 +222,8 @@
     </table>
     <table name="CODBMovie_artwork" options="ENGINE=InnoDB" kind="container">
       <column name="object_id" type="BIGINT UNSIGNED" null="false"/>
-      <column name="key" type="TEXT" null="false"/>
-      <column name="value" type="TEXT" null="false"/>
+      <column name="index" type="BIGINT UNSIGNED" null="false"/>
+      <column name="value" type="BIGINT UNSIGNED" null="true"/>
       <foreign-key name="CODBMovie_artwork_object_id_fk" on-delete="CASCADE">
         <column name="object_id"/>
         <references table="CODBMovie">
@@ -233,6 +233,15 @@
       <index name="object_id_i">
         <column name="object_id"/>
       </index>
+      <index name="index_i">
+        <column name="index"/>
+      </index>
+      <foreign-key name="CODBMovie_artwork_value_fk" deferrable="DEFERRED">
+        <column name="value"/>
+        <references table="CODBArt">
+          <column name="idArt"/>
+        </references>
+      </foreign-key>
     </table>
     <table name="CODBMovie_countries" options="ENGINE=InnoDB" kind="container">
       <column name="object_id" type="BIGINT UNSIGNED" null="false"/>
