@@ -10,6 +10,7 @@
 #define ODBSET_H
 
 #include <odb/core.hxx>
+#include "ODBArt.h"
 
 #include <map>
 #include <string>
@@ -32,7 +33,7 @@ public:
   unsigned long m_idSet;
   std::string m_name;
   std::string m_overview;
-  std::map<std::string, std::string> m_artwork;
+  std::vector< odb::lazy_shared_ptr<CODBArt> > m_artwork;
   
 private:
   friend class odb::access;

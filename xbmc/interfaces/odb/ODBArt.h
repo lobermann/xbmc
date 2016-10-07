@@ -37,7 +37,6 @@ class CODBArt
   CODBArt()
   {
     m_idArt = 0;
-    m_idMedia = 0;
     m_media_type = "";
     m_type = "";
     m_url = "";
@@ -45,7 +44,6 @@ class CODBArt
 
 #pragma db id auto
   unsigned long m_idArt;
-  unsigned long m_idMedia;
   std::string m_media_type;
   std::string m_type;
   std::string m_url;

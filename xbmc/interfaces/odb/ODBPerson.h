@@ -11,6 +11,8 @@
 
 #include <odb/core.hxx>
 
+#include "ODBArt.h"
+
 #include <string>
 
 #ifdef ODB_COMPILER
@@ -24,13 +26,12 @@ public:
   CODBPerson()
   {
     m_name = "";
-    m_art_urls = "";
   };
   
 #pragma db id auto
   unsigned long m_idPerson;
   std::string m_name;
-  std::string m_art_urls;
+  odb::lazy_shared_ptr<CODBArt> m_art;
   
 private:
   friend class odb::access;

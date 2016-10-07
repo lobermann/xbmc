@@ -2519,15 +2519,14 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
       {
         std::string trim_name(i.strName);
         person->m_name = StringUtils::Trim(trim_name).substr(0,255);
-        person->m_art_urls = i.thumbUrl.m_xml; //TODO: Definitely not correct, needs to be corrected
-        m_cdb.getDB()->persist(person);
 
         std::shared_ptr<CODBArt> art(new CODBArt);
-        art->m_idMedia = idMovie;
         art->m_media_type = "actor";
         art->m_type = "thumb";
         art->m_url = i.thumb;
         m_cdb.getDB()->persist(art);
+
+        m_cdb.getDB()->persist(person);
       }
 
       std::shared_ptr<CODBPersonLink> link(new CODBPersonLink);
@@ -2683,7 +2682,15 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
       if (set->m_artwork.empty())
       {
         for(const auto& i: artwork)
-          set->m_artwork.insert(std::make_pair(i.first, i.second));
+        {
+          std::shared_ptr<CODBArt> art(new CODBArt);
+          art->m_media_type = "set";
+          art->m_type = i.first;
+          art->m_url = i.second;
+          m_cdb.getDB()->persist(art);
+          set->m_artwork.push_back(art);
+        }
+
         m_cdb.getDB()->update(set);
       }
 
@@ -2695,7 +2702,15 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
 
     odb_movie.m_artwork.clear();
     for(auto& i: artwork)
-      odb_movie.m_artwork.insert(std::make_pair(i.first, i.second));
+    {
+      std::shared_ptr<CODBArt> art(new CODBArt);
+      art->m_media_type = "movie";
+      art->m_type = i.first;
+      art->m_url = i.second;
+      m_cdb.getDB()->persist(art);
+      odb_movie.m_artwork.push_back(art);
+    }
+
 
     if (!details.HasUniqueID() && details.HasYear())
     { // query DB for any movies matching online id and year
