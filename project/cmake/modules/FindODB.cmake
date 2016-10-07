@@ -104,6 +104,8 @@ foreach(component ${ODB_FIND_COMPONENTS})
 	find_odb_api(${component})
 endforeach()
 
+list(APPEND ODB_LIBRARIES ${libodb_LIBRARY})
+
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(ODB
 	FOUND_VAR ODB_FOUND

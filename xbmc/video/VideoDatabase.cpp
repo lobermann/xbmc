@@ -24,6 +24,31 @@
 
 #include "VideoDatabase.h"
 
+#include <odb/odb_gen/ODBBookmark.h>
+#include <odb/odb_gen/ODBBookmark_odb.h>
+#include <odb/odb_gen/ODBFile.h>
+#include <odb/odb_gen/ODBFile_odb.h>
+#include <odb/odb_gen/ODBGenre.h>
+#include <odb/odb_gen/ODBGenre_odb.h>
+#include <odb/odb_gen/ODBMovie.h>
+#include <odb/odb_gen/ODBMovie_odb.h>
+#include <odb/odb_gen/ODBPath.h>
+#include <odb/odb_gen/ODBPath_odb.h>
+#include <odb/odb_gen/ODBPerson.h>
+#include <odb/odb_gen/ODBPerson_odb.h>
+#include <odb/odb_gen/ODBPersonLink.h>
+#include <odb/odb_gen/ODBPersonLink_odb.h>
+#include <odb/odb_gen/ODBRating.h>
+#include <odb/odb_gen/ODBRating_odb.h>
+#include <odb/odb_gen/ODBSet.h>
+#include <odb/odb_gen/ODBSet_odb.h>
+#include <odb/odb_gen/ODBStreamDetails.h>
+#include <odb/odb_gen/ODBStreamDetails_odb.h>
+#include <odb/odb_gen/ODBUniqueID.h>
+#include <odb/odb_gen/ODBUniqueID_odb.h>
+#include <odb/odb_gen/ODBArt.h>
+#include <odb/odb_gen/ODBArt_odb.h>
+
 #include <algorithm>
 #include <map>
 #include <memory>
@@ -2496,6 +2521,13 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
         person->m_name = StringUtils::Trim(trim_name).substr(0,255);
         person->m_art_urls = i.thumbUrl.m_xml; //TODO: Definitely not correct, needs to be corrected
         m_cdb.getDB()->persist(person);
+
+        std::shared_ptr<CODBArt> art(new CODBArt);
+        art->m_idMedia = idMovie;
+        art->m_media_type = "actor";
+        art->m_type = "thumb";
+        art->m_url = i.thumb;
+        m_cdb.getDB()->persist(art);
       }
 
       std::shared_ptr<CODBPersonLink> link(new CODBPersonLink);

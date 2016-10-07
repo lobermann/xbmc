@@ -1,5 +1,20 @@
-include ../../Makefile.include
-DEPS= ../../Makefile.include Makefile
+-include ../../Makefile.include
+DEPS = Makefile
+
+ifeq ($(CROSS_COMPILING), yes)
+  DEPS += ../../Makefile.include
+else
+  CXXFLAGS += -std=c++11
+  ROOT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+
+  ifeq ($(PLATFORM),)
+    PLATFORM = native
+    TARBALLS_LOCATION = $(ROOT_DIR)
+    BASE_URL := http://mirrors.kodi.tv/build-deps/sources
+    RETRIEVE_TOOL := curl -Ls --create-dirs -f -O
+    ARCHIVE_TOOL := tar --strip-components=1 -xf
+  endif
+endif
 
 # lib name, version
 LIBNAME=libodb-mysql
@@ -9,13 +24,16 @@ BASE_URL=http://codesynthesis.com/download/odb/2.4/
 SOURCE=$(LIBNAME)-$(VERSION)
 ARCHIVE=$(SOURCE).tar.gz
 
+CPPFLAGS += "-I$(PREFIX)/include -I$(PREFIX)/include/mysql -I/usr/include"
+LDFLAGS += "-L$(PREFIX)/lib -L$(PREFIX)/lib/mysql -L/usr/lib -L/usr/lib/x86_64-linux-gnu -lgcrypt -lssl -lcurl"
+
 # configuration settings
 CONFIGURE=cp -f $(CONFIG_SUB) $(CONFIG_GUESS) .; \
           ./configure --prefix=$(PREFIX) \
 		  				--disable-shared \
 						--enable-static \
-						CPPFLAGS="-I$(PREFIX)/include -I$(PREFIX)/include/mysql" \
-						LDFLAGS="-L$(PREFIX)/lib -L$(PREFIX)/lib/mysql -lgcrypt -lssl -lcurl"
+						CPPFLAGS=$(CPPFLAGS) \
+						LDFLAGS=$(LDFLAGS)
 
 LIBDYLIB=$(PLATFORM)/odb/mysql/.libs/$(LIBNAME).a
 
