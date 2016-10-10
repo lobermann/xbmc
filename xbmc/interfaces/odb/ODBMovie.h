@@ -17,14 +17,18 @@
 #include <string>
 #include <vector>
 
+#include "ODBBookmark.h"
+#include "ODBCountry.h"
 #include "ODBFile.h"
 #include "ODBRating.h"
 #include "ODBGenre.h"
 #include "ODBPersonLink.h"
 #include "ODBSet.h"
-#include "ODBBookmark.h"
+#include "ODBStudio.h"
+#include "ODBTag.h"
 #include "ODBUniqueID.h"
 #include "ODBArt.h"
+
 
 #ifdef ODB_COMPILER
 #pragma db model version(1, 1, open)
@@ -75,12 +79,12 @@ public:
   std::vector< odb::lazy_shared_ptr<CODBPersonLink> > m_writingCredits;
   std::string m_originalTitle;
   std::string m_thumbUrl_spoof;
-  std::vector<std::string> m_studios;
-  std::vector<std::string> m_tags;
+  std::vector< odb::lazy_shared_ptr<CODBStudio> > m_studios;
+  std::vector< odb::lazy_shared_ptr<CODBTag> > m_tags;
   std::string m_trailer;
   std::string m_fanart;
   std::vector< odb::lazy_shared_ptr<CODBArt> > m_artwork;
-  std::vector<std::string> m_countries;
+  std::vector< odb::lazy_shared_ptr<CODBCountry> > m_countries;
   odb::lazy_shared_ptr<CODBPath> m_basePath;
   odb::lazy_shared_ptr<CODBPath> m_parentPath;
   odb::lazy_shared_ptr<CODBSet> m_set;
@@ -93,6 +97,27 @@ public:
   
 private:
   friend class odb::access;
+};
+
+#pragma db view \
+  object(CODBMovie) \
+  object(CODBGenre = genre: CODBMovie::m_genres) \
+  object(CODBPersonLink = director: CODBMovie::m_directors) \
+  object(CODBPersonLink = actor: CODBMovie::m_actors) \
+  object(CODBStudio = studio: CODBMovie::m_studios) \
+  object(CODBTag = tag: CODBMovie::m_tags) \
+  object(CODBCountry = country: CODBMovie::m_countries) \
+  query(distinct)
+struct ODBView_Movie
+{
+  std::shared_ptr<CODBMovie> movie;
+};
+
+#pragma db view object(CODBMovie)
+struct ODBView_Movie_Count
+{
+#pragma db column("count(1)")
+  std::size_t count;
 };
 
 #pragma db view object(CODBMovie) \
