@@ -13,8 +13,11 @@ set(OdbCMake_ODB_HEADERS
         ODBStreamDetails.h
         ODBBookmark.h
         ODBUniqueID.h
-        ODBMovie.h
-        ODBArt.h)
+        ODBArt.h
+        ODBCountry.h
+        ODBStudio.h
+        ODBTag.h
+        ODBMovie.h)
 
 odb_compile(OdbCMake_SOURCES FILES ${OdbCMake_ODB_HEADERS}
     MULTI_DATABASE dynamic

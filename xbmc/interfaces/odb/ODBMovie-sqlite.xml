@@ -189,7 +189,7 @@
     <table name="CODBMovie_studios" kind="container">
       <column name="object_id" type="INTEGER" null="false"/>
       <column name="index" type="INTEGER" null="false"/>
-      <column name="value" type="TEXT" null="false"/>
+      <column name="value" type="INTEGER" null="true"/>
       <foreign-key name="object_id_fk" on-delete="CASCADE">
         <column name="object_id"/>
         <references table="CODBMovie">
@@ -202,11 +202,17 @@
       <index name="CODBMovie_studios_index_i">
         <column name="index"/>
       </index>
+      <foreign-key name="value_fk" deferrable="DEFERRED">
+        <column name="value"/>
+        <references table="CODBStudio">
+          <column name="idStudio"/>
+        </references>
+      </foreign-key>
     </table>
     <table name="CODBMovie_tags" kind="container">
       <column name="object_id" type="INTEGER" null="false"/>
       <column name="index" type="INTEGER" null="false"/>
-      <column name="value" type="TEXT" null="false"/>
+      <column name="value" type="INTEGER" null="true"/>
       <foreign-key name="object_id_fk" on-delete="CASCADE">
         <column name="object_id"/>
         <references table="CODBMovie">
@@ -219,6 +225,12 @@
       <index name="CODBMovie_tags_index_i">
         <column name="index"/>
       </index>
+      <foreign-key name="value_fk" deferrable="DEFERRED">
+        <column name="value"/>
+        <references table="CODBTag">
+          <column name="idTag"/>
+        </references>
+      </foreign-key>
     </table>
     <table name="CODBMovie_artwork" kind="container">
       <column name="object_id" type="INTEGER" null="false"/>
@@ -246,7 +258,7 @@
     <table name="CODBMovie_countries" kind="container">
       <column name="object_id" type="INTEGER" null="false"/>
       <column name="index" type="INTEGER" null="false"/>
-      <column name="value" type="TEXT" null="false"/>
+      <column name="value" type="INTEGER" null="true"/>
       <foreign-key name="object_id_fk" on-delete="CASCADE">
         <column name="object_id"/>
         <references table="CODBMovie">
@@ -259,6 +271,12 @@
       <index name="CODBMovie_countries_index_i">
         <column name="index"/>
       </index>
+      <foreign-key name="value_fk" deferrable="DEFERRED">
+        <column name="value"/>
+        <references table="CODBCountry">
+          <column name="idCountry"/>
+        </references>
+      </foreign-key>
     </table>
     <table name="CODBMovie_bookmarks" kind="container">
       <column name="object_id" type="INTEGER" null="false"/>

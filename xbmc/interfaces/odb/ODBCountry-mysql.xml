@@ -1,0 +1,11 @@
+<changelog xmlns="http://www.codesynthesis.com/xmlns/odb/changelog" database="mysql" version="1">
+  <model version="1">
+    <table name="CODBCountry" options="ENGINE=InnoDB" kind="object">
+      <column name="idCountry" type="BIGINT UNSIGNED" null="false"/>
+      <column name="name" type="TEXT" null="false"/>
+      <primary-key auto="true">
+        <column name="idCountry"/>
+      </primary-key>
+    </table>
+  </model>
+</changelog>
