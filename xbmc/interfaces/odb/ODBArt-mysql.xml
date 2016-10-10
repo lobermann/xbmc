@@ -1,0 +1,13 @@
+<changelog xmlns="http://www.codesynthesis.com/xmlns/odb/changelog" database="mysql" version="1">
+  <model version="1">
+    <table name="CODBArt" options="ENGINE=InnoDB" kind="object">
+      <column name="idArt" type="BIGINT UNSIGNED" null="false"/>
+      <column name="media_type" type="TEXT" null="false"/>
+      <column name="type" type="TEXT" null="false"/>
+      <column name="url" type="TEXT" null="false"/>
+      <primary-key auto="true">
+        <column name="idArt"/>
+      </primary-key>
+    </table>
+  </model>
+</changelog>

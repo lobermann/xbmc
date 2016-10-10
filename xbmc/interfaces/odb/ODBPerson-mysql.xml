@@ -3,10 +3,16 @@
     <table name="CODBPerson" options="ENGINE=InnoDB" kind="object">
       <column name="idPerson" type="BIGINT UNSIGNED" null="false"/>
       <column name="name" type="TEXT" null="false"/>
-      <column name="art_urls" type="TEXT" null="false"/>
+      <column name="art" type="BIGINT UNSIGNED" null="true"/>
       <primary-key auto="true">
         <column name="idPerson"/>
       </primary-key>
+      <foreign-key name="CODBPerson_art_fk" deferrable="DEFERRED">
+        <column name="art"/>
+        <references table="CODBArt">
+          <column name="idArt"/>
+        </references>
+      </foreign-key>
     </table>
   </model>
 </changelog>

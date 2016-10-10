@@ -24,6 +24,7 @@
 #include "ODBSet.h"
 #include "ODBBookmark.h"
 #include "ODBUniqueID.h"
+#include "ODBArt.h"
 
 #ifdef ODB_COMPILER
 #pragma db model version(1, 1, open)
@@ -78,7 +79,7 @@ public:
   std::vector<std::string> m_tags;
   std::string m_trailer;
   std::string m_fanart;
-  std::map<std::string, std::string> m_artwork;
+  std::vector< odb::lazy_shared_ptr<CODBArt> > m_artwork;
   std::vector<std::string> m_countries;
   odb::lazy_shared_ptr<CODBPath> m_basePath;
   odb::lazy_shared_ptr<CODBPath> m_parentPath;
