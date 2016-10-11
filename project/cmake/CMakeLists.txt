@@ -105,6 +105,9 @@ endif()
 find_package(Threads REQUIRED QUIET)
 list(APPEND DEPLIBS ${CMAKE_THREAD_LIBS_INIT})
 
+find_package(ODB REQUIRED COMPONENTS sqlite mysql)
+list(APPEND DEPLIBS ${ODB_LIBRARIES})
+
 # Required dependencies
 set(required_deps Sqlite3 FreeType PCRE Cpluff LibDvd
                   TinyXML Python Yajl
@@ -135,10 +138,6 @@ set(required_dep_libs EXPAT)
 # Required tools
 find_package(TexturePacker REQUIRED)
 find_package(JsonSchemaBuilder REQUIRED)
-
-# Required ODB
-find_package(ODB REQUIRED OPTIONAL_COMPONENTS sqlite mysql)
-list(APPEND DEPLIBS ${ODB_LIBRARIES})
 
 foreach(dep ${required_dep_libs})
   find_package(${dep} REQUIRED)

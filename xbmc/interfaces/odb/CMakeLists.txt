@@ -1,5 +1,3 @@
-find_package(ODB REQUIRED COMPONENTS sqlite mysql)
-
 include(${ODB_USE_FILE})
 
 set(OdbCMake_ODB_HEADERS
