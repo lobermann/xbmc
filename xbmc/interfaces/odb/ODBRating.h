@@ -36,6 +36,7 @@ public:
 #pragma db id auto
   unsigned long m_idRating;
   odb::lazy_shared_ptr<CODBFile> m_file;
+#pragma db type("VARCHAR(255)")
   std::string m_ratingType;
   float m_rating;
   int m_votes;

@@ -30,6 +30,7 @@ public:
   
 #pragma db id auto
   unsigned long m_idGenre;
+#pragma db type("VARCHAR(255)")
   std::string m_name;
   
   //Members not stored in the db, used for sync ...

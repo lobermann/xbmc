@@ -36,15 +36,14 @@ public:
 #pragma db id auto
   unsigned long m_idFile;
   odb::lazy_shared_ptr<CODBPath> m_path;
+#pragma db type("VARCHAR(255)")
   std::string m_filename;
   unsigned int m_playCount;
   CODBDate m_lastPlayed;
   CODBDate m_dateAdded;
-  
   //Members not stored in the db, used for sync ...
 #pragma db transient
   bool m_synced;
-  
 private:
     friend class odb::access;
 

@@ -7,6 +7,8 @@
 //
 
 #include "CommonDatabase.h"
+//system.h defines HAS_MYSQL and thus is needed here
+#include "system.h"
 
 #ifdef HAS_MYSQL
 #include <odb/mysql/database.hxx>
@@ -43,18 +45,21 @@
 #include "filesystem/SpecialProtocol.h"
 #include "profiles/ProfilesManager.h"
 #include "settings/AdvancedSettings.h"
+#include "utils/log.h"
 
 CCommonDatabase::CCommonDatabase()
 {
   DatabaseSettings settings = &g_advancedSettings.m_databaseCommon ? g_advancedSettings.m_databaseCommon : DatabaseSettings();
-  
+
 #ifdef HAS_MYSQL
-  if (settings->type == "mysql")
+  if (settings.type == "mysql")
   {
-    
+    m_db = std::shared_ptr<odb::core::database>( new odb::mysql::database(settings.user, settings.pass, "common"));
+    m_db->tracer(odb::stderr_full_tracer);
   }
-  //Default to sqlite
-  else (settings->type == "sqlite3")
+
+  //use sqlite3 per default
+  else
 #endif
   {
     std::string dbfolder = CSpecialProtocol::TranslatePath(CProfilesManager::GetInstance().GetDatabaseFolder());
@@ -62,18 +67,16 @@ CCommonDatabase::CCommonDatabase()
                                                                             SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE));
     //m_db->tracer(odb::stderr_full_tracer);
   }
+
   if(!odb::session::has_current())
     m_odb_session = std::shared_ptr<odb::session>(new odb::session);
-  
 }
 
 void CCommonDatabase::init()
 {
-  {
     odb::core::transaction t (m_db->begin());
     odb::core::schema_catalog::migrate (*m_db);
     t.commit();
-  }
 }
 
 std::shared_ptr<odb::transaction> CCommonDatabase::getTransaction()

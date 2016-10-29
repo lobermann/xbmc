@@ -3,18 +3,18 @@
     <table name="movie" kind="object">
       <column name="idMovie" type="INTEGER" null="false"/>
       <column name="file" type="INTEGER" null="true"/>
-      <column name="title" type="TEXT" null="false"/>
+      <column name="title" type="VARCHAR(2048)" null="false"/>
       <column name="plot" type="TEXT" null="false"/>
       <column name="plotoutline" type="TEXT" null="false"/>
       <column name="tagline" type="TEXT" null="false"/>
       <column name="defaultRating" type="INTEGER" null="true"/>
       <column name="credits" type="TEXT" null="false"/>
       <column name="thumbUrl" type="TEXT" null="false"/>
-      <column name="sortTitle" type="TEXT" null="false"/>
+      <column name="sortTitle" type="VARCHAR(2048)" null="false"/>
       <column name="runtime" type="INTEGER" null="false"/>
-      <column name="mpaa" type="TEXT" null="false"/>
+      <column name="mpaa" type="VARCHAR(2048)" null="false"/>
       <column name="top250" type="INTEGER" null="false"/>
-      <column name="originalTitle" type="TEXT" null="false"/>
+      <column name="originalTitle" type="VARCHAR(2048)" null="false"/>
       <column name="thumbUrl_spoof" type="TEXT" null="false"/>
       <column name="trailer" type="TEXT" null="false"/>
       <column name="fanart" type="TEXT" null="false"/>
@@ -22,6 +22,7 @@
       <column name="parentPath" type="INTEGER" null="true"/>
       <column name="set" type="INTEGER" null="true"/>
       <column name="userrating" type="INTEGER" null="false"/>
+<<<<<<< HEAD
       <column name="premiered_year" type="INTEGER" null="false"/>
       <column name="premiered_month" type="INTEGER" null="false"/>
       <column name="premiered_wday" type="INTEGER" null="false"/>
@@ -29,6 +30,9 @@
       <column name="premiered_hour" type="INTEGER" null="false"/>
       <column name="premiered_minute" type="INTEGER" null="false"/>
       <column name="premiered_second" type="INTEGER" null="false"/>
+=======
+      <column name="premiered" type="VARCHAR(2048)" null="false"/>
+>>>>>>> c5ecdbf... [ODB] use texts with fixed length for fields that have indexes
       <column name="resumeBookmark" type="INTEGER" null="true"/>
       <column name="defaultID" type="INTEGER" null="true"/>
       <primary-key auto="true">

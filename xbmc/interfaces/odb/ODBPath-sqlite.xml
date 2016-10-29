@@ -2,15 +2,16 @@
   <model version="1">
     <table name="path" kind="object">
       <column name="idPath" type="INTEGER" null="false"/>
-      <column name="path" type="TEXT" null="false"/>
-      <column name="content" type="TEXT" null="false"/>
-      <column name="scraper" type="TEXT" null="false"/>
-      <column name="hash" type="TEXT" null="false"/>
+      <column name="path" type="VARCHAR(512)" null="false"/>
+      <column name="content" type="VARCHAR(2048)" null="false"/>
+      <column name="scraper" type="VARCHAR(2048)" null="false"/>
+      <column name="hash" type="VARCHAR(2048)" null="false"/>
       <column name="scanRecursive" type="INTEGER" null="false"/>
       <column name="useFolderNames" type="INTEGER" null="false"/>
       <column name="settings" type="TEXT" null="false"/>
       <column name="noUpdate" type="INTEGER" null="false"/>
       <column name="exclude" type="INTEGER" null="false"/>
+<<<<<<< HEAD
       <column name="dateAdded_year" type="INTEGER" null="false"/>
       <column name="dateAdded_month" type="INTEGER" null="false"/>
       <column name="dateAdded_wday" type="INTEGER" null="false"/>
@@ -18,6 +19,9 @@
       <column name="dateAdded_hour" type="INTEGER" null="false"/>
       <column name="dateAdded_minute" type="INTEGER" null="false"/>
       <column name="dateAdded_second" type="INTEGER" null="false"/>
+=======
+      <column name="dateAdded" type="VARCHAR(2048)" null="false"/>
+>>>>>>> c5ecdbf... [ODB] use texts with fixed length for fields that have indexes
       <column name="parentPath" type="INTEGER" null="true"/>
       <primary-key auto="true">
         <column name="idPath"/>

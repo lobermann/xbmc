@@ -3,7 +3,7 @@
     <table name="rating" options="ENGINE=InnoDB" kind="object">
       <column name="idRating" type="BIGINT UNSIGNED" null="false"/>
       <column name="file" type="BIGINT UNSIGNED" null="true"/>
-      <column name="ratingType" type="TEXT" null="false"/>
+      <column name="ratingType" type="VARCHAR(2048)" null="false"/>
       <column name="rating" type="FLOAT" null="false"/>
       <column name="votes" type="INT" null="false"/>
       <primary-key auto="true">
