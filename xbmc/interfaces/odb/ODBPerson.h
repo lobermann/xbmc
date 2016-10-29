@@ -32,6 +32,7 @@ public:
   
 #pragma db id auto
   unsigned long m_idPerson;
+#pragma db type("VARCHAR(255)")
   std::string m_name;
   odb::lazy_shared_ptr<CODBArt> m_art;
   

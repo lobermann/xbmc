@@ -41,9 +41,13 @@ public:
   
 #pragma db id auto
   unsigned long m_idPath;
+#pragma db type("VARCHAR(255)")
   std::string m_path;
+#pragma db type("VARCHAR(2048)")
   std::string m_content;
+#pragma db type("VARCHAR(1024)")
   std::string m_scraper;
+#pragma db type("VARCHAR(512)")
   std::string m_hash;
   int m_scanRecursive;
   bool m_useFolderNames;
@@ -52,7 +56,7 @@ public:
   bool m_exclude;
   CODBDate m_dateAdded;
   odb::lazy_shared_ptr<CODBPath> m_parentPath;
-  
+
   //Members not stored in the db, used for sync ...
 #pragma db transient
   bool m_synced;

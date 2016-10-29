@@ -2,7 +2,7 @@
   <model version="1">
     <table name="person" options="ENGINE=InnoDB" kind="object">
       <column name="idPerson" type="BIGINT UNSIGNED" null="false"/>
-      <column name="name" type="TEXT" null="false"/>
+      <column name="name" type="VARCHAR(2048)" null="false"/>
       <column name="art" type="BIGINT UNSIGNED" null="true"/>
       <primary-key auto="true">
         <column name="idPerson"/>

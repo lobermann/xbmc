@@ -3,8 +3,8 @@
     <table name="uniqueid" options="ENGINE=InnoDB" kind="object">
       <column name="idUniqueID" type="BIGINT UNSIGNED" null="false"/>
       <column name="file" type="BIGINT UNSIGNED" null="true"/>
-      <column name="value" type="TEXT" null="false"/>
-      <column name="type" type="TEXT" null="false"/>
+      <column name="value" type="VARCHAR(2048)" null="false"/>
+      <column name="type" type="VARCHAR(2048)" null="false"/>
       <primary-key auto="true">
         <column name="idUniqueID"/>
       </primary-key>

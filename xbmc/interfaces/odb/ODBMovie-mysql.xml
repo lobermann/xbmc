@@ -3,18 +3,18 @@
     <table name="movie" options="ENGINE=InnoDB" kind="object">
       <column name="idMovie" type="BIGINT UNSIGNED" null="false"/>
       <column name="file" type="BIGINT UNSIGNED" null="true"/>
-      <column name="title" type="TEXT" null="false"/>
+      <column name="title" type="VARCHAR(2048)" null="false"/>
       <column name="plot" type="TEXT" null="false"/>
       <column name="plotoutline" type="TEXT" null="false"/>
       <column name="tagline" type="TEXT" null="false"/>
       <column name="defaultRating" type="BIGINT UNSIGNED" null="true"/>
       <column name="credits" type="TEXT" null="false"/>
       <column name="thumbUrl" type="TEXT" null="false"/>
-      <column name="sortTitle" type="TEXT" null="false"/>
+      <column name="sortTitle" type="VARCHAR(2048)" null="false"/>
       <column name="runtime" type="INT" null="false"/>
-      <column name="mpaa" type="TEXT" null="false"/>
+      <column name="mpaa" type="VARCHAR(2048)" null="false"/>
       <column name="top250" type="INT" null="false"/>
-      <column name="originalTitle" type="TEXT" null="false"/>
+      <column name="originalTitle" type="VARCHAR(2048)" null="false"/>
       <column name="thumbUrl_spoof" type="TEXT" null="false"/>
       <column name="trailer" type="TEXT" null="false"/>
       <column name="fanart" type="TEXT" null="false"/>
@@ -22,6 +22,7 @@
       <column name="parentPath" type="BIGINT UNSIGNED" null="true"/>
       <column name="set" type="BIGINT UNSIGNED" null="true"/>
       <column name="userrating" type="INT" null="false"/>
+<<<<<<< HEAD
       <column name="premiered_year" type="INT" null="false"/>
       <column name="premiered_month" type="INT" null="false"/>
       <column name="premiered_wday" type="INT" null="false"/>
@@ -29,6 +30,9 @@
       <column name="premiered_hour" type="INT" null="false"/>
       <column name="premiered_minute" type="INT" null="false"/>
       <column name="premiered_second" type="INT" null="false"/>
+=======
+      <column name="premiered" type="VARCHAR(2048)" null="false"/>
+>>>>>>> c5ecdbf... [ODB] use texts with fixed length for fields that have indexes
       <column name="resumeBookmark" type="BIGINT UNSIGNED" null="true"/>
       <column name="defaultID" type="BIGINT UNSIGNED" null="true"/>
       <primary-key auto="true">

@@ -2,7 +2,7 @@
   <model version="1">
     <table name="set" kind="object">
       <column name="idSet" type="INTEGER" null="false"/>
-      <column name="name" type="TEXT" null="false"/>
+      <column name="name" type="VARCHAR(2048)" null="false"/>
       <column name="overview" type="TEXT" null="false"/>
       <primary-key auto="true">
         <column name="idSet"/>

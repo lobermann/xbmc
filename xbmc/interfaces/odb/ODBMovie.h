@@ -64,6 +64,7 @@ public:
 #pragma db id auto
   unsigned long m_idMovie;
   odb::lazy_shared_ptr<CODBFile> m_file;
+#pragma db type("VARCHAR(255)")
   std::string m_title;
   std::string m_plot;
   std::string m_plotoutline;
@@ -72,14 +73,17 @@ public:
   std::vector< odb::lazy_shared_ptr<CODBRating> > m_ratings;
   std::string m_credits;
   std::string m_thumbUrl;
+#pragma db type("VARCHAR(255)")
   std::string m_sortTitle;
   int m_runtime;
+#pragma db type("VARCHAR(2048)")
   std::string m_mpaa;
   int m_top250;
   std::vector< odb::lazy_shared_ptr<CODBGenre> > m_genres;
   std::vector< odb::lazy_shared_ptr<CODBPersonLink> > m_directors;
   std::vector< odb::lazy_shared_ptr<CODBPersonLink> > m_actors;
   std::vector< odb::lazy_shared_ptr<CODBPersonLink> > m_writingCredits;
+#pragma db type("VARCHAR(255)")
   std::string m_originalTitle;
   std::string m_thumbUrl_spoof;
   std::vector< odb::lazy_shared_ptr<CODBStudio> > m_studios;
@@ -92,6 +96,7 @@ public:
   odb::lazy_shared_ptr<CODBPath> m_parentPath;
   odb::lazy_shared_ptr<CODBSet> m_set;
   int m_userrating;
+#pragma db type("VARCHAR(255)")
   CODBDate m_premiered;
   std::vector< odb::lazy_shared_ptr<CODBBookmark> > m_bookmarks;
   odb::lazy_shared_ptr<CODBBookmark> m_resumeBookmark;

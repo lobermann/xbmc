@@ -35,7 +35,9 @@ public:
 #pragma db id auto
   unsigned long m_idUniqueID;
   odb::lazy_shared_ptr<CODBFile> m_file;
+#pragma db type("VARCHAR(255)")
   std::string m_value;
+#pragma db type("VARCHAR(255)")
   std::string m_type;
   
   //Members not stored in the db, used for sync ...

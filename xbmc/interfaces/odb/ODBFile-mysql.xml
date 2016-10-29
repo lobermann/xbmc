@@ -3,8 +3,9 @@
     <table name="file" options="ENGINE=InnoDB" kind="object">
       <column name="idFile" type="BIGINT UNSIGNED" null="false"/>
       <column name="path" type="BIGINT UNSIGNED" null="true"/>
-      <column name="filename" type="TEXT" null="false"/>
+      <column name="filename" type="VARCHAR(2048)" null="false"/>
       <column name="playCount" type="INT UNSIGNED" null="false"/>
+<<<<<<< HEAD
       <column name="lastPlayed_year" type="INT" null="false"/>
       <column name="lastPlayed_month" type="INT" null="false"/>
       <column name="lastPlayed_wday" type="INT" null="false"/>
@@ -19,6 +20,10 @@
       <column name="dateAdded_hour" type="INT" null="false"/>
       <column name="dateAdded_minute" type="INT" null="false"/>
       <column name="dateAdded_second" type="INT" null="false"/>
+=======
+      <column name="lastPlayed" type="TEXT" null="false"/>
+      <column name="dateAdded" type="VARCHAR(2048)" null="false"/>
+>>>>>>> c5ecdbf... [ODB] use texts with fixed length for fields that have indexes
       <primary-key auto="true">
         <column name="idFile"/>
       </primary-key>

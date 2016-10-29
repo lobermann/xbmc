@@ -47,6 +47,7 @@ public:
 #pragma db id auto
   unsigned long m_idArt;
   std::string m_media_type;
+#pragma db type("VARCHAR(255)")
   std::string m_type;
   std::string m_url;
   

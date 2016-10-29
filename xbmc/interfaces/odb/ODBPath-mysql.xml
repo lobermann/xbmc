@@ -2,15 +2,16 @@
   <model version="1">
     <table name="path" options="ENGINE=InnoDB" kind="object">
       <column name="idPath" type="BIGINT UNSIGNED" null="false"/>
-      <column name="path" type="TEXT" null="false"/>
-      <column name="content" type="TEXT" null="false"/>
-      <column name="scraper" type="TEXT" null="false"/>
-      <column name="hash" type="TEXT" null="false"/>
+      <column name="path" type="VARCHAR(512)" null="false"/>
+      <column name="content" type="VARCHAR(2048)" null="false"/>
+      <column name="scraper" type="VARCHAR(2048)" null="false"/>
+      <column name="hash" type="VARCHAR(2048)" null="false"/>
       <column name="scanRecursive" type="INT" null="false"/>
       <column name="useFolderNames" type="TINYINT(1)" null="false"/>
       <column name="settings" type="TEXT" null="false"/>
       <column name="noUpdate" type="TINYINT(1)" null="false"/>
       <column name="exclude" type="TINYINT(1)" null="false"/>
+<<<<<<< HEAD
       <column name="dateAdded_year" type="INT" null="false"/>
       <column name="dateAdded_month" type="INT" null="false"/>
       <column name="dateAdded_wday" type="INT" null="false"/>
@@ -18,6 +19,9 @@
       <column name="dateAdded_hour" type="INT" null="false"/>
       <column name="dateAdded_minute" type="INT" null="false"/>
       <column name="dateAdded_second" type="INT" null="false"/>
+=======
+      <column name="dateAdded" type="VARCHAR(2048)" null="false"/>
+>>>>>>> c5ecdbf... [ODB] use texts with fixed length for fields that have indexes
       <column name="parentPath" type="BIGINT UNSIGNED" null="true"/>
       <primary-key auto="true">
         <column name="idPath"/>

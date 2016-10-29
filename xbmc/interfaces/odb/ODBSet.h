@@ -33,6 +33,7 @@ public:
   
 #pragma db id auto
   unsigned long m_idSet;
+#pragma db type("VARCHAR(255)")
   std::string m_name;
   std::string m_overview;
   std::vector< odb::lazy_shared_ptr<CODBArt> > m_artwork;
