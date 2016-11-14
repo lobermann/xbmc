@@ -1,0 +1,14 @@
+<changelog xmlns="http://www.codesynthesis.com/xmlns/odb/changelog" database="mysql" version="1">
+  <model version="1">
+    <table name="tag" options="ENGINE=InnoDB" kind="object">
+      <column name="idTag" type="BIGINT UNSIGNED" null="false"/>
+      <column name="name" type="TEXT" null="false"/>
+      <primary-key auto="true">
+        <column name="idTag"/>
+      </primary-key>
+      <index name="name_i">
+        <column name="name"/>
+      </index>
+    </table>
+  </model>
+</changelog>

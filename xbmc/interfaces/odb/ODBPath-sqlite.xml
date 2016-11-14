@@ -1,0 +1,66 @@
+<changelog xmlns="http://www.codesynthesis.com/xmlns/odb/changelog" database="sqlite" version="1">
+  <model version="1">
+    <table name="path" kind="object">
+      <column name="idPath" type="INTEGER" null="false"/>
+      <column name="path" type="TEXT" null="false"/>
+      <column name="content" type="TEXT" null="false"/>
+      <column name="scraper" type="TEXT" null="false"/>
+      <column name="hash" type="TEXT" null="false"/>
+      <column name="scanRecursive" type="INTEGER" null="false"/>
+      <column name="useFolderNames" type="INTEGER" null="false"/>
+      <column name="settings" type="TEXT" null="false"/>
+      <column name="noUpdate" type="INTEGER" null="false"/>
+      <column name="exclude" type="INTEGER" null="false"/>
+      <column name="dateAdded_year" type="INTEGER" null="false"/>
+      <column name="dateAdded_month" type="INTEGER" null="false"/>
+      <column name="dateAdded_wday" type="INTEGER" null="false"/>
+      <column name="dateAdded_mday" type="INTEGER" null="false"/>
+      <column name="dateAdded_hour" type="INTEGER" null="false"/>
+      <column name="dateAdded_minute" type="INTEGER" null="false"/>
+      <column name="dateAdded_second" type="INTEGER" null="false"/>
+      <column name="parentPath" type="INTEGER" null="true"/>
+      <primary-key auto="true">
+        <column name="idPath"/>
+      </primary-key>
+      <foreign-key name="parentPath_fk" deferrable="DEFERRED">
+        <column name="parentPath"/>
+        <references table="path">
+          <column name="idPath"/>
+        </references>
+      </foreign-key>
+      <index name="path_path_i">
+        <column name="path"/>
+      </index>
+      <index name="path_content_i">
+        <column name="content"/>
+      </index>
+      <index name="path_scraper_i">
+        <column name="scraper"/>
+      </index>
+      <index name="path_hash_i">
+        <column name="hash"/>
+      </index>
+      <index name="path_scanRecursive_i">
+        <column name="scanRecursive"/>
+      </index>
+      <index name="path_noUpdate_i">
+        <column name="noUpdate"/>
+      </index>
+      <index name="path_exclude_i">
+        <column name="exclude"/>
+      </index>
+      <index name="path_dateAdded_i">
+        <column name="dateAdded_year"/>
+        <column name="dateAdded_month"/>
+        <column name="dateAdded_wday"/>
+        <column name="dateAdded_mday"/>
+        <column name="dateAdded_hour"/>
+        <column name="dateAdded_minute"/>
+        <column name="dateAdded_second"/>
+      </index>
+      <index name="path_parentPath_i">
+        <column name="parentPath"/>
+      </index>
+    </table>
+  </model>
+</changelog>

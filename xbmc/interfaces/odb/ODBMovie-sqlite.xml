@@ -1,0 +1,376 @@
+<changelog xmlns="http://www.codesynthesis.com/xmlns/odb/changelog" database="sqlite" version="1">
+  <model version="1">
+    <table name="movie" kind="object">
+      <column name="idMovie" type="INTEGER" null="false"/>
+      <column name="file" type="INTEGER" null="true"/>
+      <column name="title" type="TEXT" null="false"/>
+      <column name="plot" type="TEXT" null="false"/>
+      <column name="plotoutline" type="TEXT" null="false"/>
+      <column name="tagline" type="TEXT" null="false"/>
+      <column name="defaultRating" type="INTEGER" null="true"/>
+      <column name="credits" type="TEXT" null="false"/>
+      <column name="thumbUrl" type="TEXT" null="false"/>
+      <column name="sortTitle" type="TEXT" null="false"/>
+      <column name="runtime" type="INTEGER" null="false"/>
+      <column name="mpaa" type="TEXT" null="false"/>
+      <column name="top250" type="INTEGER" null="false"/>
+      <column name="originalTitle" type="TEXT" null="false"/>
+      <column name="thumbUrl_spoof" type="TEXT" null="false"/>
+      <column name="trailer" type="TEXT" null="false"/>
+      <column name="fanart" type="TEXT" null="false"/>
+      <column name="basePath" type="INTEGER" null="true"/>
+      <column name="parentPath" type="INTEGER" null="true"/>
+      <column name="set" type="INTEGER" null="true"/>
+      <column name="userrating" type="INTEGER" null="false"/>
+      <column name="premiered_year" type="INTEGER" null="false"/>
+      <column name="premiered_month" type="INTEGER" null="false"/>
+      <column name="premiered_wday" type="INTEGER" null="false"/>
+      <column name="premiered_mday" type="INTEGER" null="false"/>
+      <column name="premiered_hour" type="INTEGER" null="false"/>
+      <column name="premiered_minute" type="INTEGER" null="false"/>
+      <column name="premiered_second" type="INTEGER" null="false"/>
+      <column name="resumeBookmark" type="INTEGER" null="true"/>
+      <column name="defaultID" type="INTEGER" null="true"/>
+      <primary-key auto="true">
+        <column name="idMovie"/>
+      </primary-key>
+      <foreign-key name="file_fk" deferrable="DEFERRED">
+        <column name="file"/>
+        <references table="file">
+          <column name="idFile"/>
+        </references>
+      </foreign-key>
+      <foreign-key name="defaultRating_fk" deferrable="DEFERRED">
+        <column name="defaultRating"/>
+        <references table="rating">
+          <column name="idRating"/>
+        </references>
+      </foreign-key>
+      <foreign-key name="basePath_fk" deferrable="DEFERRED">
+        <column name="basePath"/>
+        <references table="path">
+          <column name="idPath"/>
+        </references>
+      </foreign-key>
+      <foreign-key name="parentPath_fk" deferrable="DEFERRED">
+        <column name="parentPath"/>
+        <references table="path">
+          <column name="idPath"/>
+        </references>
+      </foreign-key>
+      <foreign-key name="set_fk" deferrable="DEFERRED">
+        <column name="set"/>
+        <references table="set">
+          <column name="idSet"/>
+        </references>
+      </foreign-key>
+      <foreign-key name="resumeBookmark_fk" deferrable="DEFERRED">
+        <column name="resumeBookmark"/>
+        <references table="bookmark">
+          <column name="idBookmark"/>
+        </references>
+      </foreign-key>
+      <foreign-key name="defaultID_fk" deferrable="DEFERRED">
+        <column name="defaultID"/>
+        <references table="uniqueid">
+          <column name="idUniqueID"/>
+        </references>
+      </foreign-key>
+      <index name="movie_file_i">
+        <column name="file"/>
+      </index>
+      <index name="movie_title_i">
+        <column name="title"/>
+      </index>
+      <index name="movie_defaultRating_i">
+        <column name="defaultRating"/>
+      </index>
+      <index name="movie_sortTitle_i">
+        <column name="sortTitle"/>
+      </index>
+      <index name="movie_mpaa_i">
+        <column name="mpaa"/>
+      </index>
+      <index name="movie_originalTitle_i">
+        <column name="originalTitle"/>
+      </index>
+      <index name="movie_basePath_i">
+        <column name="basePath"/>
+      </index>
+      <index name="movie_parentPath_i">
+        <column name="parentPath"/>
+      </index>
+      <index name="movie_set_i">
+        <column name="set"/>
+      </index>
+      <index name="movie_userrating_i">
+        <column name="userrating"/>
+      </index>
+      <index name="movie_premiered_i">
+        <column name="premiered_year"/>
+        <column name="premiered_month"/>
+        <column name="premiered_wday"/>
+        <column name="premiered_mday"/>
+        <column name="premiered_hour"/>
+        <column name="premiered_minute"/>
+        <column name="premiered_second"/>
+      </index>
+      <index name="movie_defaultID_i">
+        <column name="defaultID"/>
+      </index>
+    </table>
+    <table name="movie_ratings" kind="container">
+      <column name="object_id" type="INTEGER" null="false"/>
+      <column name="index" type="INTEGER" null="false"/>
+      <column name="value" type="INTEGER" null="true"/>
+      <foreign-key name="object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="movie">
+          <column name="idMovie"/>
+        </references>
+      </foreign-key>
+      <index name="movie_ratings_object_id_i">
+        <column name="object_id"/>
+      </index>
+      <index name="movie_ratings_index_i">
+        <column name="index"/>
+      </index>
+      <foreign-key name="value_fk" deferrable="DEFERRED">
+        <column name="value"/>
+        <references table="rating">
+          <column name="idRating"/>
+        </references>
+      </foreign-key>
+    </table>
+    <table name="movie_genres" kind="container">
+      <column name="object_id" type="INTEGER" null="false"/>
+      <column name="index" type="INTEGER" null="false"/>
+      <column name="value" type="INTEGER" null="true"/>
+      <foreign-key name="object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="movie">
+          <column name="idMovie"/>
+        </references>
+      </foreign-key>
+      <index name="movie_genres_object_id_i">
+        <column name="object_id"/>
+      </index>
+      <index name="movie_genres_index_i">
+        <column name="index"/>
+      </index>
+      <foreign-key name="value_fk" deferrable="DEFERRED">
+        <column name="value"/>
+        <references table="genre">
+          <column name="idGenre"/>
+        </references>
+      </foreign-key>
+    </table>
+    <table name="movie_directors" kind="container">
+      <column name="object_id" type="INTEGER" null="false"/>
+      <column name="index" type="INTEGER" null="false"/>
+      <column name="value" type="INTEGER" null="true"/>
+      <foreign-key name="object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="movie">
+          <column name="idMovie"/>
+        </references>
+      </foreign-key>
+      <index name="movie_directors_object_id_i">
+        <column name="object_id"/>
+      </index>
+      <index name="movie_directors_index_i">
+        <column name="index"/>
+      </index>
+      <foreign-key name="value_fk" deferrable="DEFERRED">
+        <column name="value"/>
+        <references table="personlink">
+          <column name="idPersonLink"/>
+        </references>
+      </foreign-key>
+    </table>
+    <table name="movie_actors" kind="container">
+      <column name="object_id" type="INTEGER" null="false"/>
+      <column name="index" type="INTEGER" null="false"/>
+      <column name="value" type="INTEGER" null="true"/>
+      <foreign-key name="object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="movie">
+          <column name="idMovie"/>
+        </references>
+      </foreign-key>
+      <index name="movie_actors_object_id_i">
+        <column name="object_id"/>
+      </index>
+      <index name="movie_actors_index_i">
+        <column name="index"/>
+      </index>
+      <foreign-key name="value_fk" deferrable="DEFERRED">
+        <column name="value"/>
+        <references table="personlink">
+          <column name="idPersonLink"/>
+        </references>
+      </foreign-key>
+    </table>
+    <table name="movie_writingCredits" kind="container">
+      <column name="object_id" type="INTEGER" null="false"/>
+      <column name="index" type="INTEGER" null="false"/>
+      <column name="value" type="INTEGER" null="true"/>
+      <foreign-key name="object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="movie">
+          <column name="idMovie"/>
+        </references>
+      </foreign-key>
+      <index name="movie_writingCredits_object_id_i">
+        <column name="object_id"/>
+      </index>
+      <index name="movie_writingCredits_index_i">
+        <column name="index"/>
+      </index>
+      <foreign-key name="value_fk" deferrable="DEFERRED">
+        <column name="value"/>
+        <references table="personlink">
+          <column name="idPersonLink"/>
+        </references>
+      </foreign-key>
+    </table>
+    <table name="movie_studios" kind="container">
+      <column name="object_id" type="INTEGER" null="false"/>
+      <column name="index" type="INTEGER" null="false"/>
+      <column name="value" type="INTEGER" null="true"/>
+      <foreign-key name="object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="movie">
+          <column name="idMovie"/>
+        </references>
+      </foreign-key>
+      <index name="movie_studios_object_id_i">
+        <column name="object_id"/>
+      </index>
+      <index name="movie_studios_index_i">
+        <column name="index"/>
+      </index>
+      <foreign-key name="value_fk" deferrable="DEFERRED">
+        <column name="value"/>
+        <references table="studio">
+          <column name="idStudio"/>
+        </references>
+      </foreign-key>
+    </table>
+    <table name="movie_tags" kind="container">
+      <column name="object_id" type="INTEGER" null="false"/>
+      <column name="index" type="INTEGER" null="false"/>
+      <column name="value" type="INTEGER" null="true"/>
+      <foreign-key name="object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="movie">
+          <column name="idMovie"/>
+        </references>
+      </foreign-key>
+      <index name="movie_tags_object_id_i">
+        <column name="object_id"/>
+      </index>
+      <index name="movie_tags_index_i">
+        <column name="index"/>
+      </index>
+      <foreign-key name="value_fk" deferrable="DEFERRED">
+        <column name="value"/>
+        <references table="tag">
+          <column name="idTag"/>
+        </references>
+      </foreign-key>
+    </table>
+    <table name="movie_artwork" kind="container">
+      <column name="object_id" type="INTEGER" null="false"/>
+      <column name="index" type="INTEGER" null="false"/>
+      <column name="value" type="INTEGER" null="true"/>
+      <foreign-key name="object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="movie">
+          <column name="idMovie"/>
+        </references>
+      </foreign-key>
+      <index name="movie_artwork_object_id_i">
+        <column name="object_id"/>
+      </index>
+      <index name="movie_artwork_index_i">
+        <column name="index"/>
+      </index>
+      <foreign-key name="value_fk" deferrable="DEFERRED">
+        <column name="value"/>
+        <references table="art">
+          <column name="idArt"/>
+        </references>
+      </foreign-key>
+    </table>
+    <table name="movie_countries" kind="container">
+      <column name="object_id" type="INTEGER" null="false"/>
+      <column name="index" type="INTEGER" null="false"/>
+      <column name="value" type="INTEGER" null="true"/>
+      <foreign-key name="object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="movie">
+          <column name="idMovie"/>
+        </references>
+      </foreign-key>
+      <index name="movie_countries_object_id_i">
+        <column name="object_id"/>
+      </index>
+      <index name="movie_countries_index_i">
+        <column name="index"/>
+      </index>
+      <foreign-key name="value_fk" deferrable="DEFERRED">
+        <column name="value"/>
+        <references table="country">
+          <column name="idCountry"/>
+        </references>
+      </foreign-key>
+    </table>
+    <table name="movie_bookmarks" kind="container">
+      <column name="object_id" type="INTEGER" null="false"/>
+      <column name="index" type="INTEGER" null="false"/>
+      <column name="value" type="INTEGER" null="true"/>
+      <foreign-key name="object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="movie">
+          <column name="idMovie"/>
+        </references>
+      </foreign-key>
+      <index name="movie_bookmarks_object_id_i">
+        <column name="object_id"/>
+      </index>
+      <index name="movie_bookmarks_index_i">
+        <column name="index"/>
+      </index>
+      <foreign-key name="value_fk" deferrable="DEFERRED">
+        <column name="value"/>
+        <references table="bookmark">
+          <column name="idBookmark"/>
+        </references>
+      </foreign-key>
+    </table>
+    <table name="movie_ids" kind="container">
+      <column name="object_id" type="INTEGER" null="false"/>
+      <column name="index" type="INTEGER" null="false"/>
+      <column name="value" type="INTEGER" null="true"/>
+      <foreign-key name="object_id_fk" on-delete="CASCADE">
+        <column name="object_id"/>
+        <references table="movie">
+          <column name="idMovie"/>
+        </references>
+      </foreign-key>
+      <index name="movie_ids_object_id_i">
+        <column name="object_id"/>
+      </index>
+      <index name="movie_ids_index_i">
+        <column name="index"/>
+      </index>
+      <foreign-key name="value_fk" deferrable="DEFERRED">
+        <column name="value"/>
+        <references table="uniqueid">
+          <column name="idUniqueID"/>
+        </references>
+      </foreign-key>
+    </table>
+  </model>
+</changelog>
