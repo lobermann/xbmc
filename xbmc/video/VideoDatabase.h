@@ -31,6 +31,11 @@
 #include "video/VideoDbUrl.h"
 #include "VideoInfoTag.h"
 
+#include "../dbwrappers/CommonDatabase.h"
+
+#include <odb/odb_gen/ODBMovie.h>
+#include <odb/odb_gen/ODBMovie_odb.h>
+
 class CFileItem;
 class CFileItemList;
 class CVideoSettings;
@@ -423,11 +428,13 @@ public:
 
   CVideoDatabase(void);
   virtual ~CVideoDatabase(void);
+  
+  CCommonDatabase m_cdb;
 
   virtual bool Open();
   virtual bool CommitTransaction();
 
-  int AddMovie(const std::string& strFilenameAndPath);
+  int AddMovie(const std::string& strFilenameAndPath); //ODB DONE
   int AddEpisode(int idShow, const std::string& strFilenameAndPath);
 
   // editing functions
@@ -438,35 +445,35 @@ public:
    \param date The date the file was last viewed (does not denote the video was watched to completion).  If empty we current datetime (if count > 0) or never viewed (if count = 0).
    \sa GetPlayCount, IncrementPlayCount, UpdateLastPlayed
    */
-  void SetPlayCount(const CFileItem &item, int count, const CDateTime &date = CDateTime());
+  void SetPlayCount(const CFileItem &item, int count, const CDateTime &date = CDateTime()); //ODB DONE
 
   /*! \brief Increment the playcount of an item
    Increments the playcount and updates the last played date
    \param item CFileItem to increment the playcount for
    \sa GetPlayCount, SetPlayCount, GetPlayCounts
    */
-  void IncrementPlayCount(const CFileItem &item);
+  void IncrementPlayCount(const CFileItem &item); //ODB DONE
 
   /*! \brief Get the playcount of an item
    \param item CFileItem to get the playcount for
    \return the playcount of the item, or -1 on error
    \sa SetPlayCount, IncrementPlayCount, GetPlayCounts
    */
-  int GetPlayCount(const CFileItem &item);
+  int GetPlayCount(const CFileItem &item); //ODB DONE
 
   /*! \brief Get the playcount of a filename and path
    \param strFilenameAndPath filename and path to get the playcount for
    \return the playcount of the item, or -1 on error
    \sa SetPlayCount, IncrementPlayCount, GetPlayCounts
    */
-  int GetPlayCount(const std::string& strFilenameAndPath);
+  int GetPlayCount(const std::string& strFilenameAndPath); //ODB DONE
 
   /*! \brief Update the last played time of an item
    Updates the last played date
    \param item CFileItem to update the last played time for
    \sa GetPlayCount, SetPlayCount, IncrementPlayCount, GetPlayCounts
    */
-  void UpdateLastPlayed(const CFileItem &item);
+  void UpdateLastPlayed(const CFileItem &item); //ODB DONE
 
   /*! \brief Get the playcount and resume point of a list of items
    Note that if the resume point is already set on an item, it won't be overridden.
@@ -474,49 +481,49 @@ public:
    \param items CFileItemList to fetch the playcounts for
    \sa GetPlayCount, SetPlayCount, IncrementPlayCount
    */
-  bool GetPlayCounts(const std::string &path, CFileItemList &items);
+  bool GetPlayCounts(const std::string &path, CFileItemList &items); //ODB DONE
 
-  void UpdateMovieTitle(int idMovie, const std::string& strNewMovieTitle, VIDEODB_CONTENT_TYPE iType=VIDEODB_CONTENT_MOVIES);
+  void UpdateMovieTitle(int idMovie, const std::string& strNewMovieTitle, VIDEODB_CONTENT_TYPE iType=VIDEODB_CONTENT_MOVIES); //ODB DONE
   bool UpdateVideoSortTitle(int idDb, const std::string& strNewSortTitle, VIDEODB_CONTENT_TYPE iType = VIDEODB_CONTENT_MOVIES);
 
-  bool HasMovieInfo(const std::string& strFilenameAndPath);
+  bool HasMovieInfo(const std::string& strFilenameAndPath); //ODB DONE
   bool HasTvShowInfo(const std::string& strFilenameAndPath);
   bool HasEpisodeInfo(const std::string& strFilenameAndPath);
   bool HasMusicVideoInfo(const std::string& strFilenameAndPath);
 
-  void GetFilePathById(int idMovie, std::string &filePath, VIDEODB_CONTENT_TYPE iType);
-  std::string GetGenreById(int id);
-  std::string GetCountryById(int id);
-  std::string GetSetById(int id);
-  std::string GetTagById(int id);
-  std::string GetPersonById(int id);
-  std::string GetStudioById(int id);
+  void GetFilePathById(int idMovie, std::string &filePath, VIDEODB_CONTENT_TYPE iType); //ODB Partially DONE
+  std::string GetGenreById(int id); //ODB DONE
+  std::string GetCountryById(int id); //ODB DONE
+  std::string GetSetById(int id); //ODB DONE
+  std::string GetTagById(int id); //ODB DONE
+  std::string GetPersonById(int id); //ODB DONE
+  std::string GetStudioById(int id); //ODB DONE
   std::string GetTvShowTitleById(int id);
   std::string GetMusicVideoAlbumById(int id);
   int GetTvShowForEpisode(int idEpisode);
   int GetSeasonForEpisode(int idEpisode);
 
-  bool LoadVideoInfo(const std::string& strFilenameAndPath, CVideoInfoTag& details, int getDetails = VideoDbDetailsAll);
-  bool GetMovieInfo(const std::string& strFilenameAndPath, CVideoInfoTag& details, int idMovie = -1, int getDetails = VideoDbDetailsAll);
+  bool LoadVideoInfo(const std::string& strFilenameAndPath, CVideoInfoTag& details, int getDetails = VideoDbDetailsAll); //ODB DONE
+  bool GetMovieInfo(const std::string& strFilenameAndPath, CVideoInfoTag& details, int idMovie = -1, int getDetails = VideoDbDetailsAll); //ODB DONE
   bool GetTvShowInfo(const std::string& strPath, CVideoInfoTag& details, int idTvShow = -1, CFileItem* item = NULL, int getDetails = VideoDbDetailsAll);
   bool GetSeasonInfo(int idSeason, CVideoInfoTag& details);
   bool GetEpisodeInfo(const std::string& strFilenameAndPath, CVideoInfoTag& details, int idEpisode = -1, int getDetails = VideoDbDetailsAll);
   bool GetMusicVideoInfo(const std::string& strFilenameAndPath, CVideoInfoTag& details, int idMVideo = -1, int getDetails = VideoDbDetailsAll);
-  bool GetSetInfo(int idSet, CVideoInfoTag& details);
-  bool GetFileInfo(const std::string& strFilenameAndPath, CVideoInfoTag& details, int idFile = -1);
+  bool GetSetInfo(int idSet, CVideoInfoTag& details); //ODB DONE
+  bool GetFileInfo(const std::string& strFilenameAndPath, CVideoInfoTag& details, int idFile = -1); //ODB DONE
 
-  int GetPathId(const std::string& strPath);
+  int GetPathId(const std::string& strPath); //ODB DONE
   int GetTvShowId(const std::string& strPath);
   int GetEpisodeId(const std::string& strFilenameAndPath, int idEpisode=-1, int idSeason=-1); // idEpisode, idSeason are used for multipart episodes as hints
   int GetSeasonId(int idShow, int season);
 
   void GetEpisodesByFile(const std::string& strFilenameAndPath, std::vector<CVideoInfoTag>& episodes);
 
-  int SetDetailsForItem(CVideoInfoTag& details, const std::map<std::string, std::string> &artwork);
-  int SetDetailsForItem(int id, const MediaType& mediaType, CVideoInfoTag& details, const std::map<std::string, std::string> &artwork);
+  int SetDetailsForItem(CVideoInfoTag& details, const std::map<std::string, std::string> &artwork); //ODB DONE
+  int SetDetailsForItem(int id, const MediaType& mediaType, CVideoInfoTag& details, const std::map<std::string, std::string> &artwork); //ODB DONE
 
-  int SetDetailsForMovie(const std::string& strFilenameAndPath, CVideoInfoTag& details, const std::map<std::string, std::string> &artwork, int idMovie = -1);
-  int SetDetailsForMovieSet(const CVideoInfoTag& details, const std::map<std::string, std::string> &artwork, int idSet = -1);
+  int SetDetailsForMovie(const std::string& strFilenameAndPath, CVideoInfoTag& details, const std::map<std::string, std::string> &artwork, int idMovie = -1); //ODB DONE
+  int SetDetailsForMovieSet(const CVideoInfoTag& details, const std::map<std::string, std::string> &artwork, int idSet = -1); //ODB DONE
 
   /*! \brief add a tvshow to the library, setting metdata detail
    First checks for whether this TV Show is already in the database (based on idTvShow, or via GetMatchingTvShow)
@@ -533,18 +540,31 @@ public:
   int SetDetailsForSeason(const CVideoInfoTag& details, const std::map<std::string, std::string> &artwork, int idShow, int idSeason = -1);
   int SetDetailsForEpisode(const std::string& strFilenameAndPath, CVideoInfoTag& details, const std::map<std::string, std::string> &artwork, int idShow, int idEpisode=-1);
   int SetDetailsForMusicVideo(const std::string& strFilenameAndPath, const CVideoInfoTag& details, const std::map<std::string, std::string> &artwork, int idMVideo = -1);
-  void SetStreamDetailsForFile(const CStreamDetails& details, const std::string &strFileNameAndPath);
-  void SetStreamDetailsForFileId(const CStreamDetails& details, int idFile);
+  void SetStreamDetailsForFile(const CStreamDetails& details, const std::string &strFileNameAndPath); //ODB DONE
+  void SetStreamDetailsForFileId(const CStreamDetails& details, int idFile); //ODB DONE, MUSICVIDE and EPISODE MISSING
 
-  bool SetSingleValue(VIDEODB_CONTENT_TYPE type, int dbId, int dbField, const std::string &strValue);
-  bool SetSingleValue(VIDEODB_CONTENT_TYPE type, int dbId, Field dbField, const std::string &strValue);
-  bool SetSingleValue(const std::string &table, const std::string &fieldName, const std::string &strValue,
+  bool SetSingleValue(VIDEODB_CONTENT_TYPE type, int dbId, int dbField, const std::string &strValue); //DEPRECATE
+  bool SetSingleValue(VIDEODB_CONTENT_TYPE type, int dbId, Field dbField, const std::string &strValue); //DEPRECATE
+  bool SetSingleValue(const std::string &table, const std::string &fieldName, const std::string &strValue, //DEPRECATE
                       const std::string &conditionName = "", int conditionValue = -1);
 
-  int UpdateDetailsForMovie(int idMovie, CVideoInfoTag& details, const std::map<std::string, std::string> &artwork, const std::set<std::string> &updatedDetails);
+  int UpdateDetailsForMovie(int idMovie, CVideoInfoTag& details, const std::map<std::string, std::string> &artwork, const std::set<std::string> &updatedDetails); //ODB PARTIALLY DONE
+  
+  void SetMovieDetailsGenres(CODBMovie& odbMovie, std::vector<std::string>& genres); //ODB DONE
+  void SetMovieDetailsStudios(CODBMovie& odbMovie, std::vector<std::string>& studios); //ODB DONE
+  void SetMovieDetailsCountries(CODBMovie& odbMovie, std::vector<std::string>& countries); //ODB DONE
+  void SetMovieDetailsTags(CODBMovie& odbMovie, std::vector<std::string>& tags); //ODB DONE
+  void SetMovieDetailsDirectors(CODBMovie& odbMovie, std::vector<std::string>& directors); //ODB DONE
+  void SetMovieDetailsWritingCredits(CODBMovie& odbMovie, std::vector<std::string>& writingCredits); //ODB DONE
+  void SetMovieDetailsArtwork(CODBMovie& odbMovie, const std::map<std::string, std::string>& artwork); //ODB DONE
+  void SetMovieDetailsRating(CODBMovie& odbMovie, CVideoInfoTag& details); //ODB DONE
+  void SetMovieDetailsUniqueIDs(CODBMovie& odbMovie, CVideoInfoTag& details); //ODB DONE
+  void SetMovieDetailsValues(CODBMovie& odbMovie, CVideoInfoTag& details); //ODB DONE
+  
+  void SetSetDetailsArtwork(CODBSet& odbSet, const std::map<std::string, std::string>& artwork); //ODB DONE
 
-  void DeleteMovie(int idMovie, bool bKeepId = false);
-  void DeleteMovie(const std::string& strFilenameAndPath, bool bKeepId = false);
+  void DeleteMovie(int idMovie, bool bKeepId = false); //ODB DONE
+  void DeleteMovie(const std::string& strFilenameAndPath, bool bKeepId = false); //ODB DONE
   void DeleteTvShow(int idTvShow, bool bKeepId = false);
   void DeleteTvShow(const std::string& strPath);
   void DeleteSeason(int idSeason, bool bKeepId = false);
@@ -608,7 +628,7 @@ public:
   void DeleteBookMarkForEpisode(const CVideoInfoTag& tag);
   bool GetResumePoint(CVideoInfoTag& tag);
   bool GetStreamDetails(CFileItem& item);
-  bool GetStreamDetails(CVideoInfoTag& tag) const;
+  bool GetStreamDetails(CVideoInfoTag& tag);
 
   // scraper settings
   void SetScraperForPath(const std::string& filePath, const ADDON::ScraperPtr& info, const VIDEO::SScanSettings& settings);
@@ -778,8 +798,8 @@ public:
   bool ImportArtFromXML(const TiXmlNode *node, std::map<std::string, std::string> &artwork);
 
   // smart playlists and main retrieval work in these functions
-  bool GetMoviesByWhere(const std::string& strBaseDir, const Filter &filter, CFileItemList& items, const SortDescription &sortDescription = SortDescription(), int getDetails = VideoDbDetailsNone);
-  bool GetSetsByWhere(const std::string& strBaseDir, const Filter &filter, CFileItemList& items, bool ignoreSingleMovieSets = false);
+  bool GetMoviesByWhere(const std::string& strBaseDir, const Filter &filter, CFileItemList& items, const SortDescription &sortDescription = SortDescription(), int getDetails = VideoDbDetailsNone, odb::query<ODBView_Movie> optionalQueries = odb::query<ODBView_Movie>());
+  bool GetSetsByWhere(const std::string& strBaseDir, const Filter &filter, CFileItemList& items, bool ignoreSingleMovieSets = false, odb::query<ODBView_Movie> optionalQueries = odb::query<ODBView_Movie>());
   bool GetTvShowsByWhere(const std::string& strBaseDir, const Filter &filter, CFileItemList& items, const SortDescription &sortDescription = SortDescription(), int getDetails = VideoDbDetailsNone);
   bool GetSeasonsByWhere(const std::string& strBaseDir, const Filter &filter, CFileItemList& items, bool appendFullShowPath = true, const SortDescription &sortDescription = SortDescription());
   bool GetEpisodesByWhere(const std::string& strBaseDir, const Filter &filter, CFileItemList& items, bool appendFullShowPath = true, const SortDescription &sortDescription = SortDescription(), int getDetails = VideoDbDetailsNone);
@@ -819,15 +839,17 @@ public:
     }
   }
 
-  void SetArtForItem(int mediaId, const MediaType &mediaType, const std::string &artType, const std::string &url);
-  void SetArtForItem(int mediaId, const MediaType &mediaType, const std::map<std::string, std::string> &art);
-  bool GetArtForItem(int mediaId, const MediaType &mediaType, std::map<std::string, std::string> &art);
-  std::string GetArtForItem(int mediaId, const MediaType &mediaType, const std::string &artType);
-  bool RemoveArtForItem(int mediaId, const MediaType &mediaType, const std::string &artType);
-  bool RemoveArtForItem(int mediaId, const MediaType &mediaType, const std::set<std::string> &artTypes);
+  void SetArtForItem(int mediaId, const MediaType &mediaType, const std::string &artType, const std::string &url); //TO BE DEPRECATED
+  void SetArtForItem(int mediaId, const MediaType &mediaType, const std::map<std::string, std::string> &art); //TO BE DEPRECATED
+  
+  bool GetArtForItem(int mediaId, const MediaType &mediaType, std::map<std::string, std::string> &art); //ODB PARTIALLY DONE
+  std::string GetArtForItem(int mediaId, const MediaType &mediaType, const std::string &artType); //ODB PARTIALLY DONE
+  
+  bool RemoveArtForItem(int mediaId, const MediaType &mediaType, const std::string &artType);  //ODB PARTIALLY DONE
+  bool RemoveArtForItem(int mediaId, const MediaType &mediaType, const std::set<std::string> &artTypes);  //ODB PARTIALLY DONE
   bool GetTvShowSeasons(int showId, std::map<int, int> &seasons);
   bool GetTvShowSeasonArt(int mediaId, std::map<int, std::map<std::string, std::string> > &seasonArt);
-  bool GetArtTypes(const MediaType &mediaType, std::vector<std::string> &artTypes);
+  bool GetArtTypes(const MediaType &mediaType, std::vector<std::string> &artTypes); //ODB PARTIALLY DONE
 
   int AddTag(const std::string &tag);
   void AddTagToItem(int idItem, int idTag, const std::string &type);
@@ -903,8 +925,7 @@ protected:
   void AddCast(int mediaId, const char *mediaType, const std::vector<SActorInfo> &cast);
 
   void DeleteStreamDetails(int idFile);
-  CVideoInfoTag GetDetailsForMovie(std::unique_ptr<dbiplus::Dataset> &pDS, int getDetails = VideoDbDetailsNone);
-  CVideoInfoTag GetDetailsForMovie(const dbiplus::sql_record* const record, int getDetails = VideoDbDetailsNone);
+  CVideoInfoTag GetDetailsForMovie(const odb::result<ODBView_Movie>::iterator record, int getDetails = VideoDbDetailsNone);
   CVideoInfoTag GetDetailsForTvShow(std::unique_ptr<dbiplus::Dataset> &pDS, int getDetails = VideoDbDetailsNone, CFileItem* item = NULL);
   CVideoInfoTag GetDetailsForTvShow(const dbiplus::sql_record* const record, int getDetails = VideoDbDetailsNone, CFileItem* item = NULL);
   CVideoInfoTag GetDetailsForEpisode(std::unique_ptr<dbiplus::Dataset> &pDS, int getDetails = VideoDbDetailsNone);

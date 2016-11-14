@@ -848,6 +848,25 @@ void CDateTime::GetAsTm(tm& time) const
   mktime(&time);
 }
 
+tm CDateTime::GetAsTm() const
+{
+  tm time;
+  SYSTEMTIME st;
+  GetAsSystemTime(st);
+  
+  time.tm_year=st.wYear-1900;
+  time.tm_mon=st.wMonth-1;
+  time.tm_wday=st.wDayOfWeek;
+  time.tm_mday=st.wDay;
+  time.tm_hour=st.wHour;
+  time.tm_min=st.wMinute;
+  time.tm_sec=st.wSecond;
+  
+  mktime(&time);
+  
+  return time;
+}
+
 void CDateTime::GetAsTimeStamp(FILETIME& time) const
 {
   ::LocalFileTimeToFileTime(&m_time, &time);
