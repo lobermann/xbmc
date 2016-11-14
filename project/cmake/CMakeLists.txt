@@ -102,6 +102,9 @@ endif()
 find_package(Threads REQUIRED QUIET)
 list(APPEND DEPLIBS ${CMAKE_THREAD_LIBS_INIT})
 
+find_package(ODB REQUIRED COMPONENTS sqlite mysql)
+list(APPEND DEPLIBS ${ODB_LIBRARIES})
+
 # Required dependencies
 set(required_deps Sqlite3 FreeType PCRE Cpluff LibDvd
                   TinyXML Python Yajl
@@ -303,6 +306,7 @@ add_dependencies(lib${APP_NAME_LC} libcpluff ffmpeg dvdnav crossguid)
 
 # Codegen
 add_subdirectory(${CORE_SOURCE_DIR}/xbmc/interfaces/swig build/swig)
+add_subdirectory(${CORE_SOURCE_DIR}/xbmc/interfaces/odb build/odb)
 
 # Other files (IDE)
 set(OTHER_FILES README.md)
