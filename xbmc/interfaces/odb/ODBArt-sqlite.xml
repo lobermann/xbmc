@@ -1,0 +1,16 @@
+<changelog xmlns="http://www.codesynthesis.com/xmlns/odb/changelog" database="sqlite" version="1">
+  <model version="1">
+    <table name="art" kind="object">
+      <column name="idArt" type="INTEGER" null="false"/>
+      <column name="media_type" type="TEXT" null="false"/>
+      <column name="type" type="TEXT" null="false"/>
+      <column name="url" type="TEXT" null="false"/>
+      <primary-key auto="true">
+        <column name="idArt"/>
+      </primary-key>
+      <index name="art_type_i">
+        <column name="type"/>
+      </index>
+    </table>
+  </model>
+</changelog>
