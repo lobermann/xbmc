@@ -15,7 +15,8 @@ DEPENDS = \
 	libamplayer libssh taglib libusb libnfs \
 	pythonmodule-pil pythonmodule-setuptools \
 	libxslt ffmpeg platform crossguid \
-        libdvdread libdvdnav libdvdcss
+    libdvdread libdvdnav libdvdcss \
+	odb libodb libodb-mysql libodb-sqlite
 
 
 FFMPEG_DEPENDS = gnutls
@@ -105,6 +106,8 @@ libcec: platform
 crossguid: $(CROSSGUID_DEPS)
 libdvdnav: libdvdread
 libdvdread: $(DVDREAD_DEPS)
+libodb-mysql: libodb mysql openssl $(ZLIB)
+libodb-sqlite: libodb
 
 .installed-$(PLATFORM): $(DEPENDS)
 	touch $@
