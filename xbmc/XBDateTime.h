@@ -197,6 +197,7 @@ public:
   void GetAsSystemTime(SYSTEMTIME& time) const;
   void GetAsTime(time_t& time) const;
   void GetAsTm(tm& time) const;
+  tm GetAsTm() const;
   void GetAsTimeStamp(FILETIME& time) const;
 
   CDateTime GetAsUTCDateTime() const;

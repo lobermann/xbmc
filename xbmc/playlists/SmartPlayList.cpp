@@ -671,6 +671,39 @@ std::string CSmartPlaylistRule::GetLocalizedRule() const
   return StringUtils::Format("%s %s %s", GetLocalizedField(m_field).c_str(), GetLocalizedOperator(m_operator).c_str(), GetParameter().c_str());
 }
 
+odb::query<ODBView_Movie> CSmartPlaylistRule::GetODBVideoResolutionQuery(const std::string &parameter) const
+{
+  typedef odb::query<ODBView_Movie> query;
+  query retVal;
+  int iRes = (int)std::strtol(parameter.c_str(), NULL, 10);
+  
+  int min, max;
+  if (iRes >= 1080)     { min = 1281; max = INT_MAX; }
+  else if (iRes >= 720) { min =  961; max = 1280; }
+  else if (iRes >= 540) { min =  721; max =  960; }
+  else                  { min =    0; max =  720; }
+  
+  switch (m_operator)
+  {
+    case OPERATOR_EQUALS:
+      retVal = query::CODBStreamDetails::videoWidth >= min && query::CODBStreamDetails::videoWidth <= max;
+      break;
+    case OPERATOR_DOES_NOT_EQUAL:
+      retVal = query::CODBStreamDetails::videoWidth < min || query::CODBStreamDetails::videoWidth > max;
+      break;
+    case OPERATOR_LESS_THAN:
+      retVal = query::CODBStreamDetails::videoWidth < min;
+      break;
+    case OPERATOR_GREATER_THAN:
+      retVal = query::CODBStreamDetails::videoWidth > max;
+      break;
+    default:
+      break;
+  }
+  
+  return retVal;
+}
+
 std::string CSmartPlaylistRule::GetVideoResolutionQuery(const std::string &parameter) const
 {
   std::string retVal(" IN (SELECT DISTINCT idFile FROM streamdetails WHERE iVideoWidth ");
@@ -702,6 +735,28 @@ std::string CSmartPlaylistRule::GetVideoResolutionQuery(const std::string &param
 
   retVal += ")";
   return retVal;
+}
+
+odb::query<ODBView_Movie> CSmartPlaylistRule::GetMovieBooleanQuery(const bool &negate, const std::string &strType)
+{
+  typedef odb::query<ODBView_Movie> query;
+  
+  if (m_field == FieldInProgress)
+  {
+    if (negate)
+      return query( query::CODBMovie::resumeBookmark.is_not_null() );
+    else
+      return query( query::CODBMovie::resumeBookmark.is_null() );
+  }
+  else if (m_field == FieldTrailer)
+  {
+    if (negate)
+      return query( query::CODBMovie::trailer == "" || query::CODBMovie::trailer.is_null());
+    else
+      return query( query::CODBMovie::trailer != "" && query::CODBMovie::trailer.is_not_null());
+  }
+  
+  return query();
 }
 
 std::string CSmartPlaylistRule::GetBooleanQuery(const std::string &negate, const std::string &strType) const
@@ -763,6 +818,200 @@ std::string CSmartPlaylistRule::FormatLinkQuery(const char *field, const char *t
                              "         JOIN %s ON %s.%s_id=%s_link.%s_id"
                              "         WHERE %s_link.media_id=%s AND %s.name %s AND %s_link.media_type = '%s')",
                              field, table, table, table, field, table, field, mediaField.c_str(), table, parameter.c_str(), field, mediaType.c_str());
+}
+
+odb::query<ODBView_Movie> CSmartPlaylistRule::FormatMovieWhereBetweenClause(const bool &negate,
+                                                                     const CDatabaseQueryRule::SEARCH_OPERATOR &oper,
+                                                                     const std::string &param1,
+                                                                     const std::string &param2,
+                                                                     const std::string &strType) const
+{
+  typedef odb::query<ODBView_Movie> query;
+  query where_query;
+  
+  CLog::Log(LOGERROR, "%s - between param: %s | %s- type: %s - operator: %i", __FUNCTION__, param1.c_str(), param2.c_str(), strType.c_str(), oper);
+  
+  if (m_field == FieldRating)
+  {
+    where_query = (query::defaultRating::rating >= std::stof(param1) &&
+                   query::defaultRating::rating <= std::stof(param2));
+  }
+  else if (m_field == FieldYear)
+  {
+    where_query = (query::CODBMovie::premiered.year >= std::stoi(param1) &&
+                   query::CODBMovie::premiered.year <= std::stoi(param2));
+  }
+  else if (m_field == FieldUserRating)
+  {
+    where_query = (query::CODBMovie::userrating >= std::stoi(param1) &&
+                   query::CODBMovie::userrating <= std::stoi(param2));
+  }
+  
+  if (negate)
+    return !where_query;
+  else
+    return where_query;
+}
+
+odb::query<ODBView_Movie> CSmartPlaylistRule::FormatMovieWhereClause(const bool &negate,
+                                                         const CDatabaseQueryRule::SEARCH_OPERATOR &oper,
+                                                         const std::string &param,
+                                                         const std::string &strType) const
+{
+  typedef odb::query<ODBView_Movie> query;
+  query where_query;
+  
+  CLog::Log(LOGERROR, "%s - param: %s - type: %s - operator: %i", __FUNCTION__, param.c_str(), strType.c_str(), oper);
+  
+  if (m_field == FieldTitle)
+  {
+    // OPERATOR_CONTAINS
+    where_query = query::CODBMovie::title.like("%"+param+"%");
+  }
+  else if (m_field == FieldGenre)
+  {
+    // OPERATOR_CONTAINS
+    where_query = query::genre::name.like(param);
+  }
+  else if (m_field == FieldDirector)
+  {
+    // OPERATOR_CONTAINS
+    where_query = query::director::name.like(param);
+  }
+  else if (m_field == FieldActor)
+  {
+    // OPERATOR_CONTAINS
+    where_query = query::actor::name.like(param);
+  }
+  else if (m_field == FieldWriter)
+  {
+    // OPERATOR_CONTAINS
+    where_query = query::writingCredit::name.like(param);
+  }
+  else if (m_field == FieldStudio)
+  {
+    // OPERATOR_CONTAINS
+    where_query = query::studio::name.like(param);
+  }
+  else if (m_field == FieldCountry)
+  {
+    // OPERATOR_CONTAINS
+    where_query = query::country::name.like(param);
+  }
+  else if (m_field == FieldLastPlayed)
+  {
+    //TODO: Operators need to be implemented, after a final date object has been defined for odb
+    //where_query = (query::fileView::lastPlayed.is_null() || query::fileView::lastPlayed == "");
+    
+    /* Orig:
+     else if ((m_field == FieldLastPlayed || m_field == FieldDateAdded) && (m_operator == OPERATOR_LESS_THAN || m_operator == OPERATOR_BEFORE || m_operator == OPERATOR_NOT_IN_THE_LAST))
+      query = GetField(m_field, strType) + " IS NULL OR " + GetField(m_field, strType) + parameter;*/
+  }
+  else if (m_field == FieldDateAdded)
+  {
+    //TODO: Operators need to be implemented, after a final date object has been defined for odb
+    //where_query = (query::fileView::dateAdded.is_null() || query::fileView::dateAdded == "");
+    
+    /* Orig:
+     else if ((m_field == FieldLastPlayed || m_field == FieldDateAdded) && (m_operator == OPERATOR_LESS_THAN || m_operator == OPERATOR_BEFORE || m_operator == OPERATOR_NOT_IN_THE_LAST))
+     query = GetField(m_field, strType) + " IS NULL OR " + GetField(m_field, strType) + parameter;*/
+  }
+  else if (m_field == FieldTag)
+  {
+    // OPERATOR_CONTAINS
+    where_query = query::tag::name.like(param);
+  }
+  else if (m_field == FieldVideoResolution)
+  {
+    // OPERATOR_CONTAINS
+    where_query = GetODBVideoResolutionQuery(param);
+  }
+  else if (m_field == FieldAudioChannels)
+  {
+    //TODO: Where is this used? Operators need to be included / checked
+    where_query = query::CODBStreamDetails::audioChannels == std::stoi(param);
+    
+    /* Orig:
+     else if (m_field == FieldAudioChannels)
+       query = negate + " EXISTS (SELECT 1 FROM streamdetails WHERE streamdetails.idFile = " + table + ".idFile AND iAudioChannels " + parameter + ")";
+     */
+  }
+  else if (m_field == FieldVideoCodec)
+  {
+    // OPERATOR_CONTAINS
+    where_query = query::CODBStreamDetails::videoCodec.like(param);
+    /* Orig:
+      query = negate + " EXISTS (SELECT 1 FROM streamdetails WHERE streamdetails.idFile = " + table + ".idFile AND strVideoCodec " + parameter + ")";
+     */
+  }
+  else if (m_field == FieldAudioCodec)
+  {
+    // OPERATOR_CONTAINS
+    where_query = query::CODBStreamDetails::audioCodec.like(param);
+    /* Orig:
+     query = negate + " EXISTS (SELECT 1 FROM streamdetails WHERE streamdetails.idFile = " + table + ".idFile AND strAudioCodec " + parameter + ")";
+     */
+  }
+  else if (m_field == FieldAudioLanguage)
+  {
+    // OPERATOR_CONTAINS
+     where_query = query::CODBStreamDetails::audioLanguage.like(param);
+    
+    /* Orig:
+       query = negate + " EXISTS (SELECT 1 FROM streamdetails WHERE streamdetails.idFile = " + table + ".idFile AND strAudioLanguage " + parameter + ")";
+     */
+  }
+  else if (m_field == FieldSubtitleLanguage)
+  {
+    // OPERATOR_CONTAINS
+    where_query = query::CODBStreamDetails::subtitleLanguage.like(param);
+    
+    /* Orig:
+     query = negate + " EXISTS (SELECT 1 FROM streamdetails WHERE streamdetails.idFile = " + table + ".idFile AND strSubtitleLanguage " + parameter + ")";
+     */
+  }
+  else if (m_field == FieldVideoAspectRatio)
+  {
+    // OPERATOR_CONTAINS
+    where_query = query::CODBStreamDetails::videoAspect == std::stof(param);
+    
+    /* Orig:
+     query = negate + " EXISTS (SELECT 1 FROM streamdetails WHERE streamdetails.idFile = " + table + ".idFile AND fVideoAspect " + parameter + ")";
+     */
+  }
+  else if (m_field == FieldAudioCount)
+  {
+    //TODO: Where is this used? Operators need to be included / checked.
+    // Is this really used somewhere? Needs to be done via a native query
+    //where_query = query::CODBStreamDetails::streamType == CStreamDetail::AUDIO &&
+    
+    /* Orig:
+     query = db.PrepareSQL(negate + " EXISTS (SELECT 1 FROM streamdetails WHERE streamdetails.idFile = " + table + ".idFile AND streamdetails.iStreamtype = %i GROUP BY streamdetails.idFile HAVING COUNT(streamdetails.iStreamType) " + parameter + ")",CStreamDetail::AUDIO);
+     */
+  }
+  else if (m_field == FieldSubtitleCount)
+  {
+    //TODO: Where is this used? Operators need to be included / checked.
+    // Is this really used somewhere? Needs to be done via a native query
+    
+    /* Orig:
+     query = db.PrepareSQL(negate + " EXISTS (SELECT 1 FROM streamdetails WHERE streamdetails.idFile = " + table + ".idFile AND streamdetails.iStreamType = %i GROUP BY streamdetails.idFile HAVING COUNT(streamdetails.iStreamType) " + parameter + ")",CStreamDetail::SUBTITLE);
+     */
+  }
+  else if (m_field == FieldPlaycount)
+  {
+    if (oper == OPERATOR_EQUALS && param == "0")
+      where_query += query::fileView::playCount.is_null() || query::fileView::playCount == std::stoi(param);
+    else if (oper == OPERATOR_DOES_NOT_EQUAL && param != "0")
+      where_query += query::fileView::playCount.is_null() || query::fileView::playCount != std::stoi(param);
+    else if (oper == OPERATOR_LESS_THAN)
+      where_query += query::fileView::playCount.is_null() || query::fileView::playCount < std::stoi(param);
+  }
+  
+  if (negate)
+    return !where_query;
+  else
+    return where_query;
 }
 
 std::string CSmartPlaylistRule::FormatWhereClause(const std::string &negate, const std::string &oper, const std::string &param,
@@ -936,6 +1185,73 @@ std::string CSmartPlaylistRule::GetField(int field, const std::string &type) con
   if (field >= FieldUnknown && field < FieldMax)
     return DatabaseUtils::GetField((Field)field, CMediaTypes::FromString(type), DatabaseQueryPartWhere);
   return "";
+}
+
+odb::query<ODBView_Movie> CSmartPlaylistRuleCombination::GetMovieWhereClause(const std::string& strType, std::set<std::string> &referencedPlaylists)
+{
+  typedef odb::query<CODBMovie> query;
+  query movie_query;
+  
+  // translate the combinations into SQL
+  for (CDatabaseQueryRuleCombinations::const_iterator it = m_combinations.begin(); it != m_combinations.end(); ++it)
+  {
+    std::shared_ptr<CSmartPlaylistRuleCombination> combo = std::static_pointer_cast<CSmartPlaylistRuleCombination>(*it);
+    if (combo)
+    {
+      if (it != m_combinations.begin())
+      {
+        if (m_type == CombinationAnd)
+          movie_query = query(movie_query && (combo->GetMovieWhereClause(strType, referencedPlaylists)));
+        else
+          movie_query = query(movie_query || (combo->GetMovieWhereClause(strType, referencedPlaylists)));
+      }
+    }
+  }
+  
+  for (CDatabaseQueryRules::const_iterator it = m_rules.begin(); it != m_rules.end(); ++it)
+  {
+    // don't include playlists that are meant to be displayed
+    // as a virtual folders in the SQL WHERE clause
+    if ((*it)->m_field == FieldVirtualFolder)
+      continue;
+    
+    //if (!rule.empty())
+    //  rule += m_type == CombinationAnd ? " AND " : " OR ";
+    //rule += "(";
+    odb::query<ODBView_Movie> currentRule;
+    if ((*it)->m_field == FieldPlaylist)
+    {
+      std::string playlistFile = CSmartPlaylistDirectory::GetPlaylistByName((*it)->m_parameter.at(0), strType);
+      if (!playlistFile.empty() && referencedPlaylists.find(playlistFile) == referencedPlaylists.end())
+      {
+        referencedPlaylists.insert(playlistFile);
+        CSmartPlaylist playlist;
+        if (playlist.Load(playlistFile))
+        {
+          odb::query<ODBView_Movie> playlistQuery;
+          // only playlists of same type will be part of the query
+          if (playlist.GetType() == strType || (playlist.GetType() == "mixed" && (strType == "songs" || strType == "musicvideos")) || playlist.GetType().empty())
+          {
+            playlist.SetType(strType);
+            playlistQuery = playlist.GetMovieWhereClause(referencedPlaylists);
+          }
+          if (playlist.GetType() == strType)
+          {
+            if ((*it)->m_operator == CDatabaseQueryRule::OPERATOR_DOES_NOT_EQUAL)
+              currentRule = odb::query<ODBView_Movie>(" NOT ("+playlistQuery+")");
+            else
+              currentRule = playlistQuery;
+          }
+        }
+      }
+    }
+    else
+      currentRule = (*it)->GetMovieWhereClause(strType);
+    
+    movie_query += currentRule;
+  }
+  
+  return movie_query;
 }
 
 std::string CSmartPlaylistRuleCombination::GetWhereClause(const CDatabase &db, const std::string& strType, std::set<std::string> &referencedPlaylists) const
@@ -1399,6 +1715,11 @@ bool CSmartPlaylist::IsMusicType(const std::string &type)
 {
   return type == "artists" || type == "albums" ||
          type == "songs" || type == "mixed";
+}
+
+odb::query<ODBView_Movie> CSmartPlaylist::GetMovieWhereClause(std::set<std::string> &referencedPlaylists)
+{
+  return m_ruleCombination.GetMovieWhereClause(GetType(), referencedPlaylists);
 }
 
 std::string CSmartPlaylist::GetWhereClause(const CDatabase &db, std::set<std::string> &referencedPlaylists) const
