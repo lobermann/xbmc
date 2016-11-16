@@ -142,6 +142,39 @@ struct ODBView_Movie
   std::shared_ptr<CODBMovie> movie;
 };
 
+#pragma db view \
+  object(CODBMovie) \
+  object(CODBGenre = genre: CODBMovie::m_genres) \
+  query(distinct)
+struct ODBView_Movie_Genre
+{
+  std::shared_ptr<CODBMovie> movie;
+  std::shared_ptr<CODBGenre> genre;
+};
+
+#pragma db view \
+object(CODBMovie) \
+object(CODBCountry = country: CODBMovie::m_countries) \
+query(distinct)
+struct ODBView_Movie_Country
+{
+  std::shared_ptr<CODBMovie> movie;
+  std::shared_ptr<CODBCountry> country;
+};
+
+
+#pragma db view \
+  object(CODBMovie) \
+  object(CODBPersonLink = director_link: CODBMovie::m_directors) \
+  object(CODBPerson = director: director_link::m_person) \
+  query(distinct)
+struct ODBView_Movie_Director
+{
+  std::shared_ptr<CODBMovie> movie;
+  std::shared_ptr<CODBPersonLink> director_link;
+  std::shared_ptr<CODBPerson> director;
+};
+
 #pragma db view object(CODBMovie)
 struct ODBView_Movie_Count
 {
