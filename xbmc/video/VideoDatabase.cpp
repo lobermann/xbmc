@@ -2103,13 +2103,8 @@ void CVideoDatabase::DeleteDetailsForTvShow(int idTvShow)
 void CVideoDatabase::GetMoviesByActor(const std::string& name, CFileItemList& items)
 {
   Filter filter;
-  filter.join  = "LEFT JOIN actor_link ON actor_link.media_id=movie_view.idMovie AND actor_link.media_type='movie' "
-                 "LEFT JOIN actor a ON a.actor_id=actor_link.actor_id "
-                 "LEFT JOIN director_link ON director_link.media_id=movie_view.idMovie AND director_link.media_type='movie' "
-                 "LEFT JOIN actor d ON d.actor_id=director_link.actor_id";
-  filter.where = PrepareSQL("a.name='%s' OR d.name='%s'", name.c_str(), name.c_str());
-  filter.group = "movie_view.idMovie";
-  GetMoviesByWhere("videodb://movies/titles/", filter, items);
+  odb::query<ODBView_Movie> optQuery = (odb::query<ODBView_Movie>::actor::name.like(name) || odb::query<ODBView_Movie>::director::name.like(name));
+  GetMoviesByWhere("videodb://movies/titles/", filter, items, SortDescription(), VideoDbDetailsNone, optQuery);
 }
 
 void CVideoDatabase::GetTvShowsByActor(const std::string& name, CFileItemList& items)
@@ -6697,7 +6692,86 @@ void CVideoDatabase::EraseVideoSettings(const std::string &path /* = ""*/)
 
 bool CVideoDatabase::GetGenresNav(const std::string& strBaseDir, CFileItemList& items, int idContent /* = -1 */, const Filter &filter /* = Filter() */, bool countOnly /* = false */)
 {
-  return GetNavCommon(strBaseDir, items, "genre", idContent, filter, countOnly);
+  try
+  {
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    
+    std::map<int, std::pair<std::string,int> > mapItems;
+    
+    //TODO: Implement the filter for odb
+    if (idContent == VIDEODB_CONTENT_MOVIES)
+    {
+      odb::result<ODBView_Movie_Genre> res(m_cdb.getDB()->query<ODBView_Movie_Genre>(true)); //TODO: Just returns all now
+      for (odb::result<ODBView_Movie_Genre>::iterator i = res.begin(); i != res.end(); i++)
+      {
+        if (!i->movie->m_file.load() || i->movie->m_file->m_path.load())
+          continue;
+        
+        int id = i->genre->m_idGenre;
+        std::string str = i->genre->m_name;
+        int playCount = i->movie->m_file->m_playCount; //TODO: Figure out where / why this is needed and if this value is correct
+        
+        // was this already found?
+        auto it = mapItems.find(id);
+        if (it == mapItems.end())
+        {
+          // check path
+          if ( (CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser) &&
+              !g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv(2).get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
+          {
+            continue;
+          }
+          mapItems.insert(std::pair<int, std::pair<std::string,int> >(id, std::pair<std::string, int>(str,playCount)));
+        }
+      }
+    }
+    
+    if (countOnly)
+    {
+      CFileItemPtr pItem(new CFileItem());
+      pItem->SetProperty("total", static_cast<int>(mapItems.size()));
+      items.Add(pItem);
+      
+      m_pDS->close();
+      return true;
+    }
+    
+    for (const auto &i : mapItems)
+    {
+      CFileItemPtr pItem(new CFileItem(i.second.first));
+      pItem->GetVideoInfoTag()->m_iDbId = i.first;
+      pItem->GetVideoInfoTag()->m_type = "genre";
+      
+      CVideoDbUrl itemUrl;
+      std::string path = StringUtils::Format("%i/", i.first);
+      itemUrl.AppendPath(path);
+      pItem->SetPath(itemUrl.ToString());
+      
+      pItem->m_bIsFolder = true;
+      if (idContent == VIDEODB_CONTENT_MOVIES || idContent == VIDEODB_CONTENT_MUSICVIDEOS)
+        pItem->GetVideoInfoTag()->m_playCount = i.second.second;
+      if (!items.Contains(pItem->GetPath()))
+      {
+        pItem->SetLabelPreformated(true);
+        items.Add(pItem);
+      }
+    }
+    
+    if(odb_transaction)
+      odb_transaction->commit();
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s exception - %s", __FUNCTION__, e.what());
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+  }
+  
+  return true;
+  
+  //return GetNavCommon(strBaseDir, items, "genre", idContent, filter, countOnly);
 }
 
 bool CVideoDatabase::GetCountriesNav(const std::string& strBaseDir, CFileItemList& items, int idContent /* = -1 */, const Filter &filter /* = Filter() */, bool countOnly /* = false */)
@@ -8722,81 +8796,87 @@ std::string CVideoDatabase::GetContentForPath(const std::string& strPath)
 
 void CVideoDatabase::GetMovieGenresByName(const std::string& strSearch, CFileItemList& items)
 {
-  std::string strSQL;
-
+  std::string strModSearch = "%"+strSearch+"%";
+  
   try
   {
-    if (NULL == m_pDB.get()) return;
-    if (NULL == m_pDS.get()) return;
-
-    if (CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
-      strSQL=PrepareSQL("SELECT genre.genre_id, genre.name, path.strPath FROM genre INNER JOIN genre_link ON genre_link.genre_id = genre.genre_id INNER JOIN movie ON (genre_link.media_type='movie' = genre_link.media_id=movie.idMovie) INNER JOIN files ON files.idFile=movie.idFile INNER JOIN path ON path.idPath=files.idPath WHERE genre.name LIKE '%%%s%%'",strSearch.c_str());
-    else
-      strSQL=PrepareSQL("SELECT DISTINCT genre.genre_id, genre.name FROM genre INNER JOIN genre_link ON genre_link.genre_id=genre.genre_id WHERE genre_link.media_type='movie' AND name LIKE '%%%s%%'", strSearch.c_str());
-    m_pDS->query( strSQL );
-
-    while (!m_pDS->eof())
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    
+    odb::result<ODBView_Movie_Genre> res(m_cdb.getDB()->query<ODBView_Movie_Genre>(odb::query<ODBView_Movie_Genre>::genre::name.like(strModSearch)));
+    for (odb::result<ODBView_Movie_Genre>::iterator i = res.begin(); i != res.end(); i++)
     {
       if (CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),
+      {
+        if(!i->movie->m_file.load() || !i->movie->m_file->m_path.load())
+          continue;
+        
+        if (!g_passwordManager.IsDatabasePathUnlocked(i->movie->m_file->m_path->m_path,
                                                       *CMediaSourceSettings::GetInstance().GetSources("video")))
         {
-          m_pDS->next();
           continue;
         }
-
-      CFileItemPtr pItem(new CFileItem(m_pDS->fv(1).get_asString()));
-      std::string strDir = StringUtils::Format("%i/", m_pDS->fv(0).get_asInt());
+      }
+      
+      CFileItemPtr pItem(new CFileItem(i->genre->m_name));
+      std::string strDir = StringUtils::Format("%i/", static_cast<int>(i->genre->m_idGenre));
       pItem->SetPath("videodb://movies/genres/"+ strDir);
       pItem->m_bIsFolder=true;
       items.Add(pItem);
-      m_pDS->next();
     }
-    m_pDS->close();
+    
+    if(odb_transaction)
+      odb_transaction->commit();
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s (%s) exception - %s", __FUNCTION__, strModSearch.c_str(), e.what());
   }
   catch (...)
   {
-    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strSQL.c_str());
+    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strModSearch.c_str());
   }
 }
 
 void CVideoDatabase::GetMovieCountriesByName(const std::string& strSearch, CFileItemList& items)
 {
-  std::string strSQL;
-
+  std::string strModSearch = "%"+strSearch+"%";
+  
   try
   {
-    if (NULL == m_pDB.get()) return;
-    if (NULL == m_pDS.get()) return;
-
-    if (CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
-      strSQL=PrepareSQL("SELECT country.country_id, country.name, path.strPath FROM country INNER JOIN country_link ON country_link.country_id=country.country_id INNER JOIN movie ON country_link.media_id=movie.idMovie INNER JOIN files ON files.idFile=movie.idFile INNER JOIN path ON path.idPath=files.idPath WHERE country_link.media_type='movie' AND country.name LIKE '%%%s%%'", strSearch.c_str());
-    else
-      strSQL=PrepareSQL("SELECT DISTINCT country.country_id, country.name FROM country INNER JOIN country_link ON country_link.country_id=country.country_id WHERE country_link.media_type='movie' AND name like '%%%s%%'", strSearch.c_str());
-    m_pDS->query( strSQL );
-
-    while (!m_pDS->eof())
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    
+    odb::result<ODBView_Movie_Country> res(m_cdb.getDB()->query<ODBView_Movie_Country>(odb::query<ODBView_Movie_Country>::country::name.like(strModSearch)));
+    for (odb::result<ODBView_Movie_Country>::iterator i = res.begin(); i != res.end(); i++)
     {
       if (CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),
+      {
+        if(!i->movie->m_file.load() || !i->movie->m_file->m_path.load())
+          continue;
+        
+        if (!g_passwordManager.IsDatabasePathUnlocked(i->movie->m_file->m_path->m_path,
                                                       *CMediaSourceSettings::GetInstance().GetSources("video")))
         {
-          m_pDS->next();
           continue;
         }
-
-      CFileItemPtr pItem(new CFileItem(m_pDS->fv(1).get_asString()));
-      std::string strDir = StringUtils::Format("%i/", m_pDS->fv(0).get_asInt());
-      pItem->SetPath("videodb://movies/genres/"+ strDir);
+      }
+      
+      CFileItemPtr pItem(new CFileItem(i->country->m_name));
+      std::string strDir = StringUtils::Format("%i/", static_cast<int>(i->country->m_idCountry));
+      pItem->SetPath("videodb://movies/genres/"+ strDir); //TODO: Is it correct that this is also genre?
       pItem->m_bIsFolder=true;
       items.Add(pItem);
-      m_pDS->next();
     }
-    m_pDS->close();
+    
+    if(odb_transaction)
+      odb_transaction->commit();
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s (%s) exception - %s", __FUNCTION__, strModSearch.c_str(), e.what());
   }
   catch (...)
   {
-    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strSQL.c_str());
+    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strModSearch.c_str());
   }
 }
 
@@ -9292,31 +9372,30 @@ int CVideoDatabase::GetMatchingMusicVideo(const std::string& strArtist, const st
 
 void CVideoDatabase::GetMoviesByName(const std::string& strSearch, CFileItemList& items)
 {
-  std::string strSQL;
-
+  std::string strModSearch = "%"+strSearch+"%";
+  
   try
   {
-    if (NULL == m_pDB.get()) return;
-    if (NULL == m_pDS.get()) return;
-
-    if (CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
-      strSQL = PrepareSQL("SELECT movie.idMovie, movie.c%02d, path.strPath, movie.idSet FROM movie INNER JOIN files ON files.idFile=movie.idFile INNER JOIN path ON path.idPath=files.idPath WHERE movie.c%02d LIKE '%%%s%%'", VIDEODB_ID_TITLE, VIDEODB_ID_TITLE, strSearch.c_str());
-    else
-      strSQL = PrepareSQL("select movie.idMovie,movie.c%02d, movie.idSet from movie where movie.c%02d like '%%%s%%'",VIDEODB_ID_TITLE,VIDEODB_ID_TITLE,strSearch.c_str());
-    m_pDS->query( strSQL );
-
-    while (!m_pDS->eof())
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    
+    odb::result<CODBMovie> res(m_cdb.getDB()->query<CODBMovie>(odb::query<CODBMovie>::title.like(strModSearch)));
+    for (odb::result<CODBMovie>::iterator i = res.begin(); i != res.end(); i++)
     {
-      if (CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
-        {
-          m_pDS->next();
-          continue;
-        }
-
-      int movieId = m_pDS->fv("movie.idMovie").get_asInt();
-      int setId = m_pDS->fv("movie.idSet").get_asInt();
-      CFileItemPtr pItem(new CFileItem(m_pDS->fv(1).get_asString()));
+      if(!i->m_file.load() || !i->m_file->m_path.load())
+        continue;
+      
+      if (!g_passwordManager.IsDatabasePathUnlocked(i->m_file->m_path->m_path,
+                                                    *CMediaSourceSettings::GetInstance().GetSources("video")))
+      {
+        continue;
+      }
+      
+      int movieId = i->m_idMovie;
+      int setId = 0;
+      if(i->m_set.load())
+        setId = i->m_set->m_idSet;
+      
+      CFileItemPtr pItem(new CFileItem(i->m_title));
       std::string path;
       if (setId <= 0 || !CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOLIBRARY_GROUPMOVIESETS))
         path = StringUtils::Format("videodb://movies/titles/%i", movieId);
@@ -9325,13 +9404,19 @@ void CVideoDatabase::GetMoviesByName(const std::string& strSearch, CFileItemList
       pItem->SetPath(path);
       pItem->m_bIsFolder=false;
       items.Add(pItem);
-      m_pDS->next();
+      
     }
-    m_pDS->close();
+    
+    if(odb_transaction)
+      odb_transaction->commit();
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s (%s) exception - %s", __FUNCTION__, strModSearch.c_str(), e.what());
   }
   catch (...)
   {
-    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strSQL.c_str());
+    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strModSearch.c_str());
   }
 }
 
@@ -9507,84 +9592,89 @@ void CVideoDatabase::GetEpisodesByPlot(const std::string& strSearch, CFileItemLi
 
 void CVideoDatabase::GetMoviesByPlot(const std::string& strSearch, CFileItemList& items)
 {
-  std::string strSQL;
-
+  std::string strModSearch = "%"+strSearch+"%";
+  
   try
   {
-    if (NULL == m_pDB.get()) return;
-    if (NULL == m_pDS.get()) return;
-
-    if (CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
-      strSQL = PrepareSQL("select movie.idMovie, movie.c%02d, path.strPath FROM movie INNER JOIN files ON files.idFile=movie.idFile INNER JOIN path ON path.idPath=files.idPath WHERE movie.c%02d LIKE '%%%s%%' OR movie.c%02d LIKE '%%%s%%' OR movie.c%02d LIKE '%%%s%%'", VIDEODB_ID_TITLE,VIDEODB_ID_PLOT, strSearch.c_str(), VIDEODB_ID_PLOTOUTLINE, strSearch.c_str(), VIDEODB_ID_TAGLINE,strSearch.c_str());
-    else
-      strSQL = PrepareSQL("SELECT movie.idMovie, movie.c%02d FROM movie WHERE (movie.c%02d LIKE '%%%s%%' OR movie.c%02d LIKE '%%%s%%' OR movie.c%02d LIKE '%%%s%%')", VIDEODB_ID_TITLE, VIDEODB_ID_PLOT, strSearch.c_str(), VIDEODB_ID_PLOTOUTLINE, strSearch.c_str(), VIDEODB_ID_TAGLINE, strSearch.c_str());
-
-    m_pDS->query( strSQL );
-
-    while (!m_pDS->eof())
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    
+    odb::result<CODBMovie> res(m_cdb.getDB()->query<CODBMovie>(odb::query<CODBMovie>::plot.like(strModSearch) ||
+                                                               odb::query<CODBMovie>::plotoutline.like(strModSearch) ||
+                                                               odb::query<CODBMovie>::tagline.like(strModSearch)));
+    for (odb::result<CODBMovie>::iterator i = res.begin(); i != res.end(); i++)
     {
-      if (CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv(2).get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
-        {
-          m_pDS->next();
-          continue;
-        }
-
-      CFileItemPtr pItem(new CFileItem(m_pDS->fv(1).get_asString()));
-      std::string path = StringUtils::Format("videodb://movies/titles/%i", m_pDS->fv(0).get_asInt());
+      if(!i->m_file.load() || !i->m_file->m_path.load())
+        continue;
+      
+      if (!g_passwordManager.IsDatabasePathUnlocked(i->m_file->m_path->m_path,
+                                                    *CMediaSourceSettings::GetInstance().GetSources("video")))
+      {
+        continue;
+      }
+      
+      int setId = 0;
+      if(i->m_set.load())
+        setId = i->m_set->m_idSet;
+      
+      CFileItemPtr pItem(new CFileItem(i->m_title));
+      std::string path = StringUtils::Format("videodb://movies/titles/%i", static_cast<int>(i->m_idMovie));
       pItem->SetPath(path);
       pItem->m_bIsFolder=false;
-
       items.Add(pItem);
-      m_pDS->next();
+      
     }
-    m_pDS->close();
-
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s (%s) exception - %s", __FUNCTION__, strModSearch.c_str(), e.what());
   }
   catch (...)
   {
-    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strSQL.c_str());
+    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strModSearch.c_str());
   }
 }
 
 void CVideoDatabase::GetMovieDirectorsByName(const std::string& strSearch, CFileItemList& items)
 {
-  std::string strSQL;
-
+  std::string strModSearch = "%"+strSearch+"%";
+  
   try
   {
-    if (NULL == m_pDB.get()) return;
-    if (NULL == m_pDS.get()) return;
-
-    if (CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
-      strSQL = PrepareSQL("SELECT DISTINCT director_link.actor_id, actor.name, path.strPath FROM movie INNER JOIN director_link ON (director_link.media_id=movie.idMovie AND director_link.media_type='movie') INNER JOIN actor ON actor.actor_id=director_link.actor_id INNER JOIN files ON files.idFile=movie.idFile INNER JOIN path ON path.idPath=files.idPath WHERE actor.name LIKE '%%%s%%'", strSearch.c_str());
-    else
-      strSQL = PrepareSQL("SELECT DISTINCT director_link.actor_id, actor.name FROM actor INNER JOIN director_link ON director_link.actor_id=actor.actor_id INNER JOIN movie ON director_link.media_id=movie.idMovie WHERE director_link.media_type='movie' AND actor.name like '%%%s%%'", strSearch.c_str());
-
-    m_pDS->query( strSQL );
-
-    while (!m_pDS->eof())
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    
+    odb::result<ODBView_Movie_Director> res(m_cdb.getDB()->query<ODBView_Movie_Director>(odb::query<ODBView_Movie_Director>::director::name.like(strModSearch)));
+    for (odb::result<ODBView_Movie_Director>::iterator i = res.begin(); i != res.end(); i++)
     {
       if (CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
+      {
+        if(!i->movie->m_file.load() || !i->movie->m_file->m_path.load())
+          continue;
+        
+        if (!g_passwordManager.IsDatabasePathUnlocked(i->movie->m_file->m_path->m_path,
+                                                      *CMediaSourceSettings::GetInstance().GetSources("video")))
         {
-          m_pDS->next();
           continue;
         }
-
-      std::string strDir = StringUtils::Format("%i/", m_pDS->fv(0).get_asInt());
-      CFileItemPtr pItem(new CFileItem(m_pDS->fv(1).get_asString()));
-
+      }
+      
+      std::string strDir = StringUtils::Format("%i/", static_cast<int>(i->director->m_idPerson));
+      CFileItemPtr pItem(new CFileItem(i->director->m_name));
+      
       pItem->SetPath("videodb://movies/directors/"+ strDir);
       pItem->m_bIsFolder=true;
       items.Add(pItem);
-      m_pDS->next();
     }
-    m_pDS->close();
+    
+    if(odb_transaction)
+      odb_transaction->commit();
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s (%s) exception - %s", __FUNCTION__, strModSearch.c_str(), e.what());
   }
   catch (...)
   {
-    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strSQL.c_str());
+    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strModSearch.c_str());
   }
 }
 

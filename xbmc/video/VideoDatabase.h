@@ -631,9 +631,9 @@ public:
   bool GetStreamDetails(CVideoInfoTag& tag);
 
   // scraper settings
-  void SetScraperForPath(const std::string& filePath, const ADDON::ScraperPtr& info, const VIDEO::SScanSettings& settings);
-  ADDON::ScraperPtr GetScraperForPath(const std::string& strPath);
-  ADDON::ScraperPtr GetScraperForPath(const std::string& strPath, VIDEO::SScanSettings& settings);
+  void SetScraperForPath(const std::string& filePath, const ADDON::ScraperPtr& info, const VIDEO::SScanSettings& settings); //ODB DONE
+  ADDON::ScraperPtr GetScraperForPath(const std::string& strPath); //ODB DONE
+  ADDON::ScraperPtr GetScraperForPath(const std::string& strPath, VIDEO::SScanSettings& settings); //ODB DONE
 
   /*! \brief Retrieve the scraper and settings we should use for the specified path
    If the scraper is not set on this particular path, we'll recursively check parent folders.
@@ -643,7 +643,7 @@ public:
    \return A ScraperPtr containing the scraper information. Returns NULL if a trivial (Content == CONTENT_NONE)
            scraper or no scraper is found.
    */
-  ADDON::ScraperPtr GetScraperForPath(const std::string& strPath, VIDEO::SScanSettings& settings, bool& foundDirectly);
+  ADDON::ScraperPtr GetScraperForPath(const std::string& strPath, VIDEO::SScanSettings& settings, bool& foundDirectly); //ODB DONE
 
   /*! \brief Retrieve the content type of videos in the given path
    If content is set on the folder, we return the given content type, except in the case of tvshows,
@@ -696,18 +696,18 @@ public:
   int GetMatchingMusicVideo(const std::string& strArtist, const std::string& strAlbum = "", const std::string& strTitle = "");
 
   // searching functions
-  void GetMoviesByActor(const std::string& strActor, CFileItemList& items);
+  void GetMoviesByActor(const std::string& strActor, CFileItemList& items); //ODB DONE
   void GetTvShowsByActor(const std::string& strActor, CFileItemList& items);
   void GetEpisodesByActor(const std::string& strActor, CFileItemList& items);
 
   void GetMusicVideosByArtist(const std::string& strArtist, CFileItemList& items);
   void GetMusicVideosByAlbum(const std::string& strAlbum, CFileItemList& items);
 
-  void GetMovieGenresByName(const std::string& strSearch, CFileItemList& items);
+  void GetMovieGenresByName(const std::string& strSearch, CFileItemList& items); //ODB DONE
   void GetTvShowGenresByName(const std::string& strSearch, CFileItemList& items);
   void GetMusicVideoGenresByName(const std::string& strSearch, CFileItemList& items);
 
-  void GetMovieCountriesByName(const std::string& strSearch, CFileItemList& items);
+  void GetMovieCountriesByName(const std::string& strSearch, CFileItemList& items); //ODB DONE
 
   void GetMusicVideoAlbumsByName(const std::string& strSearch, CFileItemList& items);
 
@@ -715,17 +715,17 @@ public:
   void GetTvShowsActorsByName(const std::string& strSearch, CFileItemList& items);
   void GetMusicVideoArtistsByName(const std::string& strSearch, CFileItemList& items);
 
-  void GetMovieDirectorsByName(const std::string& strSearch, CFileItemList& items);
+  void GetMovieDirectorsByName(const std::string& strSearch, CFileItemList& items); //ODB DONE
   void GetTvShowsDirectorsByName(const std::string& strSearch, CFileItemList& items);
   void GetMusicVideoDirectorsByName(const std::string& strSearch, CFileItemList& items);
 
-  void GetMoviesByName(const std::string& strSearch, CFileItemList& items);
+  void GetMoviesByName(const std::string& strSearch, CFileItemList& items); //ODB DONE
   void GetTvShowsByName(const std::string& strSearch, CFileItemList& items);
   void GetEpisodesByName(const std::string& strSearch, CFileItemList& items);
   void GetMusicVideosByName(const std::string& strSearch, CFileItemList& items);
 
   void GetEpisodesByPlot(const std::string& strSearch, CFileItemList& items);
-  void GetMoviesByPlot(const std::string& strSearch, CFileItemList& items);
+  void GetMoviesByPlot(const std::string& strSearch, CFileItemList& items); //ODB DONE
 
   bool LinkMovieToTvshow(int idMovie, int idShow, bool bRemove);
   bool IsLinkedToTvshow(int idMovie);
