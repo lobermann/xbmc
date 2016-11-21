@@ -2768,6 +2768,7 @@ void CVideoDatabase::SetMovieDetailsGenres(CODBMovie& odbMovie, std::vector<std:
         genre->m_name = i;
         m_cdb.getDB()->persist(genre);
       }
+      genre->m_synced = true;
       odbMovie.m_genres.push_back(genre);
     }
     
@@ -2822,6 +2823,7 @@ void CVideoDatabase::SetMovieDetailsStudios(CODBMovie& odbMovie, std::vector<std
         studio->m_name = i;
         m_cdb.getDB()->persist(studio);
       }
+      studio->m_synced = true;
       odbMovie.m_studios.push_back(studio);
     }
     
@@ -2876,6 +2878,7 @@ void CVideoDatabase::SetMovieDetailsCountries(CODBMovie& odbMovie, std::vector<s
         country->m_name = i;
         m_cdb.getDB()->persist(country);
       }
+      country->m_synced = true;
       odbMovie.m_countries.push_back(country);
     }
     
@@ -2930,6 +2933,7 @@ void CVideoDatabase::SetMovieDetailsTags(CODBMovie& odbMovie, std::vector<std::s
         tag->m_name = i;
         m_cdb.getDB()->persist(tag);
       }
+      tag->m_synced = true;
       odbMovie.m_tags.push_back(tag);
     }
     
@@ -2989,6 +2993,7 @@ void CVideoDatabase::SetMovieDetailsDirectors(CODBMovie& odbMovie, std::vector<s
       std::shared_ptr<CODBPersonLink> link(new CODBPersonLink);
       link->m_person = person;
       m_cdb.getDB()->persist(link);
+      link->m_synced = true;
       odbMovie.m_directors.push_back(link);
     }
     
@@ -3048,6 +3053,7 @@ void CVideoDatabase::SetMovieDetailsWritingCredits(CODBMovie& odbMovie, std::vec
       std::shared_ptr<CODBPersonLink> link(new CODBPersonLink);
       link->m_person = person;
       m_cdb.getDB()->persist(link);
+      link->m_synced = true;
       odbMovie.m_writingCredits.push_back(link);
     }
     
@@ -3101,6 +3107,7 @@ void CVideoDatabase::SetMovieDetailsArtwork(CODBMovie& odbMovie, const std::map<
       art->m_type = i.first;
       art->m_url = i.second;
       m_cdb.getDB()->persist(art);
+      art->m_synced = true;
       odbMovie.m_artwork.push_back(art);
     }
     
@@ -3168,6 +3175,7 @@ void CVideoDatabase::SetMovieDetailsRating(CODBMovie& odbMovie, CVideoInfoTag& d
           rating->m_votes = i.second.votes;
           m_cdb.getDB()->persist(rating);
         }
+        rating->m_synced = true;
         odbMovie.m_ratings.push_back(rating);
       }
       //Set the default rating
@@ -3219,11 +3227,9 @@ void CVideoDatabase::SetMovieDetailsUniqueIDs(CODBMovie& odbMovie, CVideoInfoTag
         }
       }
       
-      std::shared_ptr<CODBUniqueID> uid;
-      
       if(!already_exists)
       {
-        uid = std::shared_ptr<CODBUniqueID>(new CODBUniqueID);
+        std::shared_ptr<CODBUniqueID> uid(new CODBUniqueID);
         typedef odb::query<CODBUniqueID> query;
         if (m_cdb.getDB()->query_one<CODBUniqueID>(query::file->idFile == odbMovie.m_file->m_idFile
                                                    && query::type == i.first
@@ -3238,10 +3244,12 @@ void CVideoDatabase::SetMovieDetailsUniqueIDs(CODBMovie& odbMovie, CVideoInfoTag
           uid->m_value = i.second;
           m_cdb.getDB()->persist(uid);
         }
+        uid->m_synced = true;
+        odbMovie.m_ids.push_back(uid);
+        
+        if(uid->m_type == details.GetDefaultUniqueID())
+          odbMovie.m_defaultID = uid;
       }
-      
-      if(uid->m_type == details.GetDefaultUniqueID())
-        odbMovie.m_defaultID = uid;
     }
     
     //Cleanup
@@ -3331,6 +3339,7 @@ void CVideoDatabase::SetSetDetailsArtwork(CODBSet& odbSet, const std::map<std::s
       art->m_type = i.first;
       art->m_url = i.second;
       m_cdb.getDB()->persist(art);
+      art->m_synced = true;
       odbSet.m_artwork.push_back(art);
     }
     
@@ -6701,15 +6710,12 @@ bool CVideoDatabase::GetGenresNav(const std::string& strBaseDir, CFileItemList& 
     //TODO: Implement the filter for odb
     if (idContent == VIDEODB_CONTENT_MOVIES)
     {
-      odb::result<ODBView_Movie_Genre> res(m_cdb.getDB()->query<ODBView_Movie_Genre>(true)); //TODO: Just returns all now
+      odb::result<ODBView_Movie_Genre> res(m_cdb.getDB()->query<ODBView_Movie_Genre>()); //TODO: Just returns all now, filter needs to be added
       for (odb::result<ODBView_Movie_Genre>::iterator i = res.begin(); i != res.end(); i++)
       {
-        if (!i->movie->m_file.load() || i->movie->m_file->m_path.load())
-          continue;
-        
-        int id = i->genre->m_idGenre;
-        std::string str = i->genre->m_name;
-        int playCount = i->movie->m_file->m_playCount; //TODO: Figure out where / why this is needed and if this value is correct
+        int id = i->m_idGenre;
+        std::string str = i->m_name;
+        int playCount = i->m_playCount; //TODO: Figure out where / why this is needed and if this value is correct
         
         // was this already found?
         auto it = mapItems.find(id);
@@ -6717,7 +6723,7 @@ bool CVideoDatabase::GetGenresNav(const std::string& strBaseDir, CFileItemList& 
         {
           // check path
           if ( (CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser) &&
-              !g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv(2).get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
+              !g_passwordManager.IsDatabasePathUnlocked(std::string(i->m_path),*CMediaSourceSettings::GetInstance().GetSources("video")))
           {
             continue;
           }
@@ -6736,13 +6742,17 @@ bool CVideoDatabase::GetGenresNav(const std::string& strBaseDir, CFileItemList& 
       return true;
     }
     
+    CVideoDbUrl videoUrl;
+    videoUrl.Reset();
+    videoUrl.FromString(strBaseDir);
+    
     for (const auto &i : mapItems)
     {
       CFileItemPtr pItem(new CFileItem(i.second.first));
       pItem->GetVideoInfoTag()->m_iDbId = i.first;
       pItem->GetVideoInfoTag()->m_type = "genre";
       
-      CVideoDbUrl itemUrl;
+      CVideoDbUrl itemUrl = videoUrl;
       std::string path = StringUtils::Format("%i/", i.first);
       itemUrl.AppendPath(path);
       pItem->SetPath(itemUrl.ToString());
@@ -6750,11 +6760,8 @@ bool CVideoDatabase::GetGenresNav(const std::string& strBaseDir, CFileItemList& 
       pItem->m_bIsFolder = true;
       if (idContent == VIDEODB_CONTENT_MOVIES || idContent == VIDEODB_CONTENT_MUSICVIDEOS)
         pItem->GetVideoInfoTag()->m_playCount = i.second.second;
-      if (!items.Contains(pItem->GetPath()))
-      {
-        pItem->SetLabelPreformated(true);
-        items.Add(pItem);
-      }
+      pItem->SetLabelPreformated(true);
+      items.Add(pItem);
     }
     
     if(odb_transaction)
@@ -8807,18 +8814,15 @@ void CVideoDatabase::GetMovieGenresByName(const std::string& strSearch, CFileIte
     {
       if (CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
       {
-        if(!i->movie->m_file.load() || !i->movie->m_file->m_path.load())
-          continue;
-        
-        if (!g_passwordManager.IsDatabasePathUnlocked(i->movie->m_file->m_path->m_path,
+        if (!g_passwordManager.IsDatabasePathUnlocked(i->m_path,
                                                       *CMediaSourceSettings::GetInstance().GetSources("video")))
         {
           continue;
         }
       }
       
-      CFileItemPtr pItem(new CFileItem(i->genre->m_name));
-      std::string strDir = StringUtils::Format("%i/", static_cast<int>(i->genre->m_idGenre));
+      CFileItemPtr pItem(new CFileItem(i->m_name));
+      std::string strDir = StringUtils::Format("%i/", static_cast<int>(i->m_idGenre));
       pItem->SetPath("videodb://movies/genres/"+ strDir);
       pItem->m_bIsFolder=true;
       items.Add(pItem);
