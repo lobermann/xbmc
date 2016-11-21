@@ -144,12 +144,20 @@ struct ODBView_Movie
 
 #pragma db view \
   object(CODBMovie) \
-  object(CODBGenre = genre: CODBMovie::m_genres) \
+  object(CODBGenre = genre inner: CODBMovie::m_genres) \
+  object(CODBFile = file inner: CODBMovie::m_file) \
+  object(CODBPath = path inner: file::m_path) \
   query(distinct)
 struct ODBView_Movie_Genre
 {
-  std::shared_ptr<CODBMovie> movie;
-  std::shared_ptr<CODBGenre> genre;
+  #pragma db column(genre::m_idGenre)
+  unsigned long m_idGenre;
+  #pragma db column(genre::m_name)
+  std::string m_name;
+  #pragma db column(file::m_playCount)
+  unsigned int m_playCount;
+  #pragma db column(path::m_path)
+  std::string m_path;
 };
 
 #pragma db view \
