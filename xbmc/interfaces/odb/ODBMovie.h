@@ -161,26 +161,71 @@ struct ODBView_Movie_Genre
 };
 
 #pragma db view \
-object(CODBMovie) \
-object(CODBCountry = country: CODBMovie::m_countries) \
-query(distinct)
+  object(CODBMovie) \
+  object(CODBCountry = country inner: CODBMovie::m_countries) \
+  object(CODBFile = file inner: CODBMovie::m_file) \
+  object(CODBPath = path inner: file::m_path) \
+  query(distinct)
 struct ODBView_Movie_Country
 {
-  std::shared_ptr<CODBMovie> movie;
-  std::shared_ptr<CODBCountry> country;
+#pragma db column(country::m_idCountry)
+  unsigned long m_idCountry;
+#pragma db column(country::m_name)
+  std::string m_name;
+#pragma db column(file::m_playCount)
+  unsigned int m_playCount;
+#pragma db column(path::m_path)
+  std::string m_path;
 };
-
 
 #pragma db view \
   object(CODBMovie) \
-  object(CODBPersonLink = director_link: CODBMovie::m_directors) \
-  object(CODBPerson = director: director_link::m_person) \
+  object(CODBPersonLink = person_link: CODBMovie::m_directors) \
+  object(CODBPerson = person: person_link::m_person) \
+  object(CODBFile = file inner: CODBMovie::m_file) \
+  object(CODBPath = path inner: file::m_path) \
   query(distinct)
 struct ODBView_Movie_Director
 {
-  std::shared_ptr<CODBMovie> movie;
-  std::shared_ptr<CODBPersonLink> director_link;
-  std::shared_ptr<CODBPerson> director;
+  std::shared_ptr<CODBPerson> person;
+#pragma db column(file::m_playCount)
+  unsigned int m_playCount;
+#pragma db column(path::m_path)
+  std::string m_path;
+};
+
+#pragma db view \
+  object(CODBMovie) \
+  object(CODBPersonLink = person_link: CODBMovie::m_actors) \
+  object(CODBPerson = person: person_link::m_person) \
+  object(CODBFile = file inner: CODBMovie::m_file) \
+  object(CODBPath = path inner: file::m_path) \
+  query(distinct)
+struct ODBView_Movie_Actor
+{
+  std::shared_ptr<CODBPerson> person;
+#pragma db column(file::m_playCount)
+  unsigned int m_playCount;
+#pragma db column(path::m_path)
+  std::string m_path;
+};
+
+#pragma db view \
+  object(CODBMovie) \
+  object(CODBStudio = studio inner: CODBMovie::m_studios) \
+  object(CODBFile = file inner: CODBMovie::m_file) \
+  object(CODBPath = path inner: file::m_path) \
+  query(distinct)
+struct ODBView_Movie_Studio
+{
+#pragma db column(studio::m_idStudio)
+  unsigned long m_idStudio;
+#pragma db column(studio::m_name)
+  std::string m_name;
+#pragma db column(file::m_playCount)
+  unsigned int m_playCount;
+#pragma db column(path::m_path)
+  std::string m_path;
 };
 
 #pragma db view object(CODBMovie)
@@ -215,7 +260,6 @@ struct ODBView_Movie_File_UID
   query(distinct)
 struct ODBView_Movie_Art
 {
-  std::shared_ptr<CODBMovie> movie;
   std::shared_ptr<CODBArt> art;
 };
 
