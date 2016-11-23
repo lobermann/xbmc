@@ -180,8 +180,8 @@ struct ODBView_Movie_Country
 
 #pragma db view \
   object(CODBMovie) \
-  object(CODBPersonLink = person_link: CODBMovie::m_directors) \
-  object(CODBPerson = person: person_link::m_person) \
+  object(CODBPersonLink = person_link inner: CODBMovie::m_directors) \
+  object(CODBPerson = person inner: person_link::m_person) \
   object(CODBFile = file inner: CODBMovie::m_file) \
   object(CODBPath = path inner: file::m_path) \
   query(distinct)
@@ -196,8 +196,8 @@ struct ODBView_Movie_Director
 
 #pragma db view \
   object(CODBMovie) \
-  object(CODBPersonLink = person_link: CODBMovie::m_actors) \
-  object(CODBPerson = person: person_link::m_person) \
+  object(CODBPersonLink = person_link inner: CODBMovie::m_actors) \
+  object(CODBPerson = person inner: person_link::m_person) \
   object(CODBFile = file inner: CODBMovie::m_file) \
   object(CODBPath = path inner: file::m_path) \
   query(distinct)
