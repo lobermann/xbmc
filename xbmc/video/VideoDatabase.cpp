@@ -1610,6 +1610,7 @@ int CVideoDatabase::AddMusicVideo(const std::string& strFilenameAndPath)
 //********************************************************************************************************************************
 int CVideoDatabase::AddToTable(const std::string& table, const std::string& firstField, const std::string& secondField, const std::string& value)
 {
+  //TODO: Deprecate this function
   try
   {
     if (NULL == m_pDB.get()) return -1;
@@ -1808,12 +1809,38 @@ int CVideoDatabase::AddTag(const std::string& name)
 {
   if (name.empty())
     return -1;
+  
+  try
+  {
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    
+    CODBTag odbTag;
+    if (!m_cdb.getDB()->query_one<CODBTag>(odb::query<CODBTag>::name == name, odbTag))
+    {
+      odbTag.m_name = name;
+      m_cdb.getDB()->persist(odbTag);
+    }
+    
+    if(odb_transaction)
+      odb_transaction->commit();
+    
+    return odbTag.m_idTag;
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s exception - %s", __FUNCTION__, e.what());
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+  }
 
-  return AddToTable("tag", "tag_id", "name", name);
+  return -1;
 }
 
 int CVideoDatabase::AddActor(const std::string& name, const std::string& thumbURLs, const std::string &thumb)
 {
+  //TODO: Can be depracated, should be done in the respecive type set function
   try
   {
     if (NULL == m_pDB.get()) return -1;
@@ -1937,8 +1964,51 @@ void CVideoDatabase::AddTagToItem(int media_id, int tag_id, const std::string &t
 {
   if (type.empty())
     return;
-
-  AddToLinkTable(media_id, type, "tag", tag_id);
+  
+  try
+  {
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    
+    std::shared_ptr<CODBTag> odbTag(new CODBTag);
+    if (!m_cdb.getDB()->query_one<CODBTag>(odb::query<CODBTag>::idTag == tag_id, *odbTag))
+      return;
+    
+    if (type == MediaTypeMovie)
+    {
+      CODBMovie odbMovie;
+      if (!m_cdb.getDB()->query_one<CODBMovie>(odb::query<CODBMovie>::idMovie == media_id, odbMovie))
+        return;
+      
+      //Make sure it is not already added
+      for (auto& i : odbMovie.m_tags)
+      {
+        if (!i.load())
+          continue; //TODO: Maybe remove the tag if it can not be loaded?
+        
+        if (i->m_idTag == tag_id)
+          return;
+      }
+      
+      odbMovie.m_tags.push_back(odbTag);
+      m_cdb.getDB()->update(odbMovie);
+    }
+    //TODO: Implement other needed types
+    else
+    {
+      CLog::Log(LOGERROR, "%s unknown type %s", __FUNCTION__, type.c_str());
+    }
+    
+    if(odb_transaction)
+      odb_transaction->commit();
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s exception - %s", __FUNCTION__, e.what());
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+  }
 }
 
 void CVideoDatabase::RemoveTagFromItem(int media_id, int tag_id, const std::string &type)
@@ -1946,7 +2016,51 @@ void CVideoDatabase::RemoveTagFromItem(int media_id, int tag_id, const std::stri
   if (type.empty())
     return;
 
-  RemoveFromLinkTable(media_id, type, "tag", tag_id);
+  try
+  {
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    
+    std::shared_ptr<CODBTag> odbTag(new CODBTag);
+    if (!m_cdb.getDB()->query_one<CODBTag>(odb::query<CODBTag>::idTag == tag_id, *odbTag))
+      return;
+    
+    if (type == MediaTypeMovie)
+    {
+      CODBMovie odbMovie;
+      if (!m_cdb.getDB()->query_one<CODBMovie>(odb::query<CODBMovie>::idMovie == media_id, odbMovie))
+        return;
+      
+      //Make sure it is not already added
+      for (std::vector< odb::lazy_shared_ptr<CODBTag> >::iterator i = odbMovie.m_tags.begin(); i != odbMovie.m_tags.end(); i++)
+      {
+        if (!(*i).load())
+          continue; //TODO: Maybe remove the tag if it can not be loaded?
+        
+        if ((*i)->m_idTag == tag_id)
+        {
+          odbMovie.m_tags.erase(i);
+        }
+      }
+      
+      m_cdb.getDB()->update(odbMovie);
+    }
+    //TODO: Implement other needed types
+    else
+    {
+      CLog::Log(LOGERROR, "%s unknown type %s", __FUNCTION__, type.c_str());
+    }
+    
+    if(odb_transaction)
+      odb_transaction->commit();
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s exception - %s", __FUNCTION__, e.what());
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+  }
 }
 
 void CVideoDatabase::RemoveTagsFromItem(int media_id, const std::string &type)
@@ -4824,7 +4938,6 @@ CVideoInfoTag CVideoDatabase::GetDetailsForMovie(const odb::result<ODBView_Movie
         {
           info.thumb = i->m_person->m_art->m_url;
           info.thumbUrl.ParseEpisodeGuide(info.thumb);
-          //info.thumb = std::to_string(i->m_person->m_art->m_idArt);
         }
         
         details.m_cast.emplace_back(std::move(info));
@@ -5416,7 +5529,23 @@ bool CVideoDatabase::GetArtForItem(int mediaId, const MediaType &mediaType, std:
         }
       }
     }
+    else if (mediaType == MediaTypeActor || mediaType == MediaTypeDirector)
+    {
+      typedef odb::query<CODBPerson> query;
+      CODBPerson odbPerson;
+      if (m_cdb.getDB()->query_one<CODBPerson>(query::idPerson == mediaId, odbPerson))
+      {
+        if (odbPerson.m_art.load())
+        {
+          art.insert(make_pair(odbPerson.m_art->m_type, odbPerson.m_art->m_url));
+        }
+      }
+    }
     //TODO: Add for TV Shows and MusicMovies
+    else
+    {
+      CLog::Log(LOGERROR, "%s(%d) failed, unknown mediaType %s", __FUNCTION__, mediaId, mediaType.c_str());
+    }
     
     if(odb_transaction)
       odb_transaction->commit();
@@ -7358,8 +7487,8 @@ bool CVideoDatabase::GetDirectorsNav(const std::string& strBaseDir, CFileItemLis
       odb::result<ODBView_Movie_Director> res(m_cdb.getDB()->query<ODBView_Movie_Director>()); //TODO: Just returns all now, filter needs to be added
       for (odb::result<ODBView_Movie_Director>::iterator i = res.begin(); i != res.end(); i++)
       {
-        int id = i->m_idPerson;
-        std::string str = i->m_name;
+        int id = i->person->m_idPerson;
+        std::string str = i->person->m_name;
         int playCount = i->m_playCount; //TODO: Figure out where / why this is needed and if this value is correct
         
         // was this already found?
@@ -7442,7 +7571,7 @@ bool CVideoDatabase::GetActorsNav(const std::string& strBaseDir, CFileItemList& 
   {
     std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
     
-    std::map<int, std::pair<std::string,int> > mapItems;
+    std::map<int, CActor > mapItems;
     
     //TODO: Implement the filter for odb
     if (idContent == VIDEODB_CONTENT_MOVIES)
@@ -7450,16 +7579,20 @@ bool CVideoDatabase::GetActorsNav(const std::string& strBaseDir, CFileItemList& 
       odb::result<ODBView_Movie_Actor> res(m_cdb.getDB()->query<ODBView_Movie_Actor>()); //TODO: Just returns all now, filter needs to be added
       for (odb::result<ODBView_Movie_Actor>::iterator i = res.begin(); i != res.end(); i++)
       {
-        int idActor = i->m_idPerson;
+        int idActor = i->person->m_idPerson;
         CActor actor;
-        actor.name = m_pDS->fv(1).get_asString();
-        actor.thumb = m_pDS->fv(2).get_asString();
+        actor.name = i->person->m_name;
+        if (i->person->m_art.load())
+          actor.thumb = i->person->m_art->m_url;
+        else
+          actor.thumb = "";
+        
         if (idContent != VIDEODB_CONTENT_TVSHOWS)
         {
-          actor.playcount = m_pDS->fv(3).get_asInt();
+          actor.playcount = i->m_playCount;
           actor.appearances = 1;
         }
-        else actor.appearances = m_pDS->fv(4).get_asInt();
+        else actor.appearances = 1; //TODO: Need to be added
         
         // was this already found?
         auto it = mapItems.find(idActor);
@@ -7471,7 +7604,7 @@ bool CVideoDatabase::GetActorsNav(const std::string& strBaseDir, CFileItemList& 
           {
             continue;
           }
-          mapItems.insert(std::pair<int, std::pair<std::string,int> >(idActor, std::pair<std::string, int>(str,playCount)));
+          mapItems.insert(std::pair<int, CActor>(idActor, actor));
         }
       }
     }
@@ -7492,31 +7625,33 @@ bool CVideoDatabase::GetActorsNav(const std::string& strBaseDir, CFileItemList& 
     
     for (const auto &i : mapItems)
     {
-      CFileItemPtr pItem(new CFileItem(i.second.first));
-      pItem->GetVideoInfoTag()->m_iDbId = i.first;
-      pItem->GetVideoInfoTag()->m_type = "actor";
+      CFileItemPtr pItem(new CFileItem(i.second.name));
       
       CVideoDbUrl itemUrl = videoUrl;
       std::string path = StringUtils::Format("%i/", i.first);
       itemUrl.AppendPath(path);
       pItem->SetPath(itemUrl.ToString());
       
-      pItem->m_bIsFolder = true;
-      if (idContent == VIDEODB_CONTENT_MOVIES || idContent == VIDEODB_CONTENT_MUSICVIDEOS)
-        pItem->GetVideoInfoTag()->m_playCount = i.second.second;
-      pItem->SetLabelPreformated(true);
+      pItem->m_bIsFolder=true;
+      pItem->GetVideoInfoTag()->m_playCount = i.second.playcount;
+      pItem->GetVideoInfoTag()->m_strPictureURL.ParseString("<thumb>"+i.second.thumb+"</thumb>");
+      pItem->GetVideoInfoTag()->m_iDbId = i.first;
+      pItem->GetVideoInfoTag()->m_type = "actor";
+      pItem->GetVideoInfoTag()->m_relevance = i.second.appearances;
+      if (idContent == VIDEODB_CONTENT_MUSICVIDEOS)
+        pItem->GetVideoInfoTag()->m_artist.emplace_back(pItem->GetLabel());
       items.Add(pItem);
     }
     
     // set thumbs - ideally this should be in the normal thumb setting routines
-    /*for (int i = 0; i < items.Size() && !countOnly; i++)
+    for (int i = 0; i < items.Size() && !countOnly; i++)
     {
       CFileItemPtr pItem = items[i];
       if (idContent == VIDEODB_CONTENT_MUSICVIDEOS)
         pItem->SetIconImage("DefaultArtist.png");
       else
         pItem->SetIconImage("DefaultActor.png");
-    }*/
+    }
     
     if(odb_transaction)
       odb_transaction->commit();
@@ -9933,8 +10068,8 @@ void CVideoDatabase::GetMovieDirectorsByName(const std::string& strSearch, CFile
         }
       }
       
-      std::string strDir = StringUtils::Format("%i/", static_cast<int>(i->m_idPerson));
-      CFileItemPtr pItem(new CFileItem(i->m_name));
+      std::string strDir = StringUtils::Format("%i/", static_cast<int>(i->person->m_idPerson));
+      CFileItemPtr pItem(new CFileItem(i->person->m_name));
       
       pItem->SetPath("videodb://movies/directors/"+ strDir);
       pItem->m_bIsFolder=true;
