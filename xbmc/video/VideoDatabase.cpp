@@ -2030,7 +2030,6 @@ void CVideoDatabase::RemoveTagFromItem(int media_id, int tag_id, const std::stri
       if (!m_cdb.getDB()->query_one<CODBMovie>(odb::query<CODBMovie>::idMovie == media_id, odbMovie))
         return;
       
-      //Make sure it is not already added
       for (std::vector< odb::lazy_shared_ptr<CODBTag> >::iterator i = odbMovie.m_tags.begin(); i != odbMovie.m_tags.end(); i++)
       {
         if (!(*i).load())
@@ -2039,6 +2038,7 @@ void CVideoDatabase::RemoveTagFromItem(int media_id, int tag_id, const std::stri
         if ((*i)->m_idTag == tag_id)
         {
           odbMovie.m_tags.erase(i);
+          break;
         }
       }
       
@@ -2067,8 +2067,42 @@ void CVideoDatabase::RemoveTagsFromItem(int media_id, const std::string &type)
 {
   if (type.empty())
     return;
-
-  m_pDS2->exec(PrepareSQL("DELETE FROM tag_link WHERE media_id=%d AND media_type='%s'", media_id, type.c_str()));
+  
+  try
+  {
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    
+    if (type == MediaTypeMovie)
+    {
+      CODBMovie odbMovie;
+      if (!m_cdb.getDB()->query_one<CODBMovie>(odb::query<CODBMovie>::idMovie == media_id, odbMovie))
+        return;
+      
+      //Make sure it is not already added
+      for (std::vector< odb::lazy_shared_ptr<CODBTag> >::iterator i = odbMovie.m_tags.begin(); i != odbMovie.m_tags.end();)
+      {
+          i = odbMovie.m_tags.erase(i);
+      }
+      
+      m_cdb.getDB()->update(odbMovie);
+    }
+    //TODO: Implement other needed types
+    else
+    {
+      CLog::Log(LOGERROR, "%s unknown type %s", __FUNCTION__, type.c_str());
+    }
+    
+    if(odb_transaction)
+      odb_transaction->commit();
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s exception - %s", __FUNCTION__, e.what());
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+  }
 }
 
 //****Actors****
@@ -4834,8 +4868,7 @@ CVideoInfoTag CVideoDatabase::GetDetailsForMovie(const odb::result<ODBView_Movie
     if (!i->m_person.load())
       continue;
     
-    //TODO: needs to be Trim() and std::move before emplace
-    details.m_writingCredits.emplace_back(i->m_person->m_name);
+    details.m_writingCredits.emplace_back(StringUtils::Trim(i->m_person->m_name));
   }
   
   details.m_strPictureURL.m_spoof = record->movie->m_thumbUrl_spoof;
@@ -4867,7 +4900,7 @@ CVideoInfoTag CVideoDatabase::GetDetailsForMovie(const odb::result<ODBView_Movie
   if (record->movie->m_file.load())
   {
     details.m_iFileId = record->movie->m_file->m_idFile;
-    if(record->movie->m_file->m_path.load()) //TODO: Must not happen, early return?
+    if(record->movie->m_file->m_path.load())
     {
       details.m_strPath = record->movie->m_file->m_path->m_path;
     }
@@ -7301,6 +7334,85 @@ bool CVideoDatabase::GetNavCommon(const std::string& strBaseDir, CFileItemList& 
 
 bool CVideoDatabase::GetTagsNav(const std::string& strBaseDir, CFileItemList& items, int idContent /* = -1 */, const Filter &filter /* = Filter() */, bool countOnly /* = false */)
 {
+  try
+  {
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    
+    std::map<int, std::pair<std::string,int> > mapItems;
+    
+    //TODO: Implement the filter for odb
+    if (idContent == VIDEODB_CONTENT_MOVIES)
+    {
+      odb::result<ODBView_Movie_Tag> res(m_cdb.getDB()->query<ODBView_Movie_Tag>()); //TODO: Just returns all now, filter needs to be added
+      for (odb::result<ODBView_Movie_Tag>::iterator i = res.begin(); i != res.end(); i++)
+      {
+        int id = i->m_idTag;
+        std::string str = i->m_name;
+        int playCount = i->m_playCount; //TODO: Figure out where / why this is needed and if this value is correct
+        
+        // was this already found?
+        auto it = mapItems.find(id);
+        if (it == mapItems.end())
+        {
+          // check path
+          if ( (CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser) &&
+              !g_passwordManager.IsDatabasePathUnlocked(std::string(i->m_path),*CMediaSourceSettings::GetInstance().GetSources("video")))
+          {
+            continue;
+          }
+          mapItems.insert(std::pair<int, std::pair<std::string,int> >(id, std::pair<std::string, int>(str,playCount)));
+        }
+      }
+    }
+    
+    if (countOnly)
+    {
+      CFileItemPtr pItem(new CFileItem());
+      pItem->SetProperty("total", static_cast<int>(mapItems.size()));
+      items.Add(pItem);
+      
+      m_pDS->close();
+      return true;
+    }
+    
+    CVideoDbUrl videoUrl;
+    videoUrl.Reset();
+    videoUrl.FromString(strBaseDir);
+    
+    for (const auto &i : mapItems)
+    {
+      CFileItemPtr pItem(new CFileItem(i.second.first));
+      pItem->GetVideoInfoTag()->m_iDbId = i.first;
+      pItem->GetVideoInfoTag()->m_type = "country";
+      
+      CVideoDbUrl itemUrl = videoUrl;
+      std::string path = StringUtils::Format("%i/", i.first);
+      itemUrl.AppendPath(path);
+      pItem->SetPath(itemUrl.ToString());
+      
+      pItem->m_bIsFolder = true;
+      if (idContent == VIDEODB_CONTENT_MOVIES || idContent == VIDEODB_CONTENT_MUSICVIDEOS)
+        pItem->GetVideoInfoTag()->m_playCount = i.second.second;
+      pItem->SetLabelPreformated(true);
+      items.Add(pItem);
+    }
+    
+    if(odb_transaction)
+      odb_transaction->commit();
+    
+    return true;
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s exception - %s", __FUNCTION__, e.what());
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+  }
+  
+  return false;
+  
   return GetNavCommon(strBaseDir, items, "tag", idContent, filter, countOnly);
 }
 
@@ -8394,12 +8506,12 @@ bool CVideoDatabase::GetMoviesByWhere(const std::string& strBaseDir, const Filte
     int total = 0;
 
     // Apply the limiting directly here if there's no special sorting but limiting
-    if (extFilter.limit.empty() &&
+    /*if (extFilter.limit.empty() &&
         sorting.sortBy == SortByNone &&
        (sorting.limitStart > 0 || sorting.limitEnd > 0))
     {
       movie_query += DatabaseUtils::BuildLimitClause(sorting.limitEnd, sorting.limitStart);
-    }
+    }*/
     
     //TODO: Add Sorting params
     
@@ -9237,46 +9349,6 @@ void CVideoDatabase::GetMovieGenresByName(const std::string& strSearch, CFileIte
       CFileItemPtr pItem(new CFileItem(i->m_name));
       std::string strDir = StringUtils::Format("%i/", static_cast<int>(i->m_idGenre));
       pItem->SetPath("videodb://movies/genres/"+ strDir);
-      pItem->m_bIsFolder=true;
-      items.Add(pItem);
-    }
-    
-    if(odb_transaction)
-      odb_transaction->commit();
-  }
-  catch (std::exception& e)
-  {
-    CLog::Log(LOGERROR, "%s (%s) exception - %s", __FUNCTION__, strModSearch.c_str(), e.what());
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strModSearch.c_str());
-  }
-}
-
-void CVideoDatabase::GetMovieCountriesByName(const std::string& strSearch, CFileItemList& items)
-{
-  std::string strModSearch = "%"+strSearch+"%";
-  
-  try
-  {
-    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
-    
-    odb::result<ODBView_Movie_Country> res(m_cdb.getDB()->query<ODBView_Movie_Country>(odb::query<ODBView_Movie_Country>::country::name.like(strModSearch)));
-    for (odb::result<ODBView_Movie_Country>::iterator i = res.begin(); i != res.end(); i++)
-    {
-      if (CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
-      {
-        if (!g_passwordManager.IsDatabasePathUnlocked(i->m_path,
-                                                      *CMediaSourceSettings::GetInstance().GetSources("video")))
-        {
-          continue;
-        }
-      }
-      
-      CFileItemPtr pItem(new CFileItem(i->m_name));
-      std::string strDir = StringUtils::Format("%i/", static_cast<int>(i->m_idCountry));
-      pItem->SetPath("videodb://movies/genres/"+ strDir); //TODO: Is it correct that this is also genre?
       pItem->m_bIsFolder=true;
       items.Add(pItem);
     }

@@ -185,6 +185,24 @@ struct ODBView_Movie_Country
 
 #pragma db view \
   object(CODBMovie) \
+  object(CODBTag = tag inner: CODBMovie::m_tags) \
+  object(CODBFile = file inner: CODBMovie::m_file) \
+  object(CODBPath = path inner: file::m_path) \
+  query(distinct)
+struct ODBView_Movie_Tag
+{
+#pragma db column(tag::m_idTag)
+  unsigned long m_idTag;
+#pragma db column(tag::m_name)
+  std::string m_name;
+#pragma db column(file::m_playCount)
+  unsigned int m_playCount;
+#pragma db column(path::m_path)
+  std::string m_path;
+};
+
+#pragma db view \
+  object(CODBMovie) \
   object(CODBPersonLink = person_link inner: CODBMovie::m_directors) \
   object(CODBPerson = person inner: person_link::m_person) \
   object(CODBFile = file inner: CODBMovie::m_file) \

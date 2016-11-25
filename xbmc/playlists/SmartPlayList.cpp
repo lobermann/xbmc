@@ -1249,7 +1249,7 @@ odb::query<ODBView_Movie> CSmartPlaylistRuleCombination::GetMovieWhereClause(con
           if (playlist.GetType() == strType)
           {
             if ((*it)->m_operator == CDatabaseQueryRule::OPERATOR_DOES_NOT_EQUAL)
-              currentRule = odb::query<ODBView_Movie>(" NOT ("+playlistQuery+")");
+              currentRule = odb::query<ODBView_Movie>(" NOT ("+playlistQuery+") ");
             else
               currentRule = playlistQuery;
           }

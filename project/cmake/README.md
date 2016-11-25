@@ -144,7 +144,7 @@ cmake --build . -- VERBOSE=1 -j$(sysctl -n hw.ncpu)  # or: make VERBOSE=1 -j$(sy
 ### macOS with Xcode project files
 
 ```
-cmake -DCMAKE_TOOLCHAIN_FILE=<KODI_SRC>/tools/depends/target/Toolchain.cmake -G "Xcode" <KODI_SRC>/project/cmake/
+cmake  -DCMAKE_CXX_FLAGS="-O0" -DCMAKE_TOOLCHAIN_FILE=/Users/lobermann/devel/xbmc/tools/depends/target/Toolchain.cmake -G "Xcode" /Users/lobermann/devel/xbmc/project/cmake/
 cmake --build . --config "Release" -- -verbose -jobs $(sysctl -n hw.ncpu)  # or: Build solution with Xcode
 ./Release/kodi.bin
 ```
@@ -268,10 +268,10 @@ for addon development and detailed documentation about the addon build system.
 
 Clang and GCC support different kinds of Sanitizers. To enable a Sanitizer call CMake with the
 option `-DECM_ENABLE_SANITIZERS=’san1;san2;...'`. For more information about enabling the
-Sanitizers read the documentation in 
+Sanitizers read the documentation in
 [modules/extra/ECMEnableSanitizers.cmake](https://github.com/xbmc/xbmc/tree/master/project/cmake/modules/extra/ECMEnableSanitizers.cmake).
 
-It is also recommended to read the sections about the Sanitizers in the [Clang 
+It is also recommended to read the sections about the Sanitizers in the [Clang
 documentation](http://clang.llvm.org/docs/).
 
 ## Debugging the build

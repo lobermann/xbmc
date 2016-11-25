@@ -707,8 +707,6 @@ public:
   void GetTvShowGenresByName(const std::string& strSearch, CFileItemList& items);
   void GetMusicVideoGenresByName(const std::string& strSearch, CFileItemList& items);
 
-  void GetMovieCountriesByName(const std::string& strSearch, CFileItemList& items); //ODB DONE
-
   void GetMusicVideoAlbumsByName(const std::string& strSearch, CFileItemList& items);
 
   void GetMovieActorsByName(const std::string& strSearch, CFileItemList& items);
@@ -734,13 +732,13 @@ public:
   // general browsing
   bool GetGenresNav(const std::string& strBaseDir, CFileItemList& items, int idContent=-1, const Filter &filter = Filter(), bool countOnly = false); //ODB PARTIALLY DONE
   bool GetCountriesNav(const std::string& strBaseDir, CFileItemList& items, int idContent=-1, const Filter &filter = Filter(), bool countOnly = false); //ODB PARTIALLY DONE
-  bool GetStudiosNav(const std::string& strBaseDir, CFileItemList& items, int idContent=-1, const Filter &filter = Filter(), bool countOnly = false);
-  bool GetYearsNav(const std::string& strBaseDir, CFileItemList& items, int idContent=-1, const Filter &filter = Filter());
-  bool GetActorsNav(const std::string& strBaseDir, CFileItemList& items, int idContent=-1, const Filter &filter = Filter(), bool countOnly = false);
-  bool GetDirectorsNav(const std::string& strBaseDir, CFileItemList& items, int idContent=-1, const Filter &filter = Filter(), bool countOnly = false);
-  bool GetWritersNav(const std::string& strBaseDir, CFileItemList& items, int idContent=-1, const Filter &filter = Filter(), bool countOnly = false);
-  bool GetSetsNav(const std::string& strBaseDir, CFileItemList& items, int idContent=-1, const Filter &filter = Filter(), bool ignoreSingleMovieSets = false);
-  bool GetTagsNav(const std::string& strBaseDir, CFileItemList& items, int idContent=-1, const Filter &filter = Filter(), bool countOnly = false);
+  bool GetStudiosNav(const std::string& strBaseDir, CFileItemList& items, int idContent=-1, const Filter &filter = Filter(), bool countOnly = false); //ODB PARTIALLY DONE
+  bool GetYearsNav(const std::string& strBaseDir, CFileItemList& items, int idContent=-1, const Filter &filter = Filter()); //ODB PARTIALLY DONE
+  bool GetActorsNav(const std::string& strBaseDir, CFileItemList& items, int idContent=-1, const Filter &filter = Filter(), bool countOnly = false); //ODB PARTIALLY DONE
+  bool GetDirectorsNav(const std::string& strBaseDir, CFileItemList& items, int idContent=-1, const Filter &filter = Filter(), bool countOnly = false); //ODB PARTIALLY DONE
+  bool GetWritersNav(const std::string& strBaseDir, CFileItemList& items, int idContent=-1, const Filter &filter = Filter(), bool countOnly = false); //ODB PARTIALLY DONE
+  bool GetSetsNav(const std::string& strBaseDir, CFileItemList& items, int idContent=-1, const Filter &filter = Filter(), bool ignoreSingleMovieSets = false); //ODB PARTIALLY DONE
+  bool GetTagsNav(const std::string& strBaseDir, CFileItemList& items, int idContent=-1, const Filter &filter = Filter(), bool countOnly = false); //ODB PARTIALLY DONE
   bool GetMusicVideoAlbumsNav(const std::string& strBaseDir, CFileItemList& items, int idArtist, const Filter &filter = Filter(), bool countOnly = false);
 
   bool GetMoviesNav(const std::string& strBaseDir, CFileItemList& items, int idGenre=-1, int idYear=-1, int idActor=-1, int idDirector=-1, int idStudio=-1, int idCountry=-1, int idSet=-1, int idTag=-1, const SortDescription &sortDescription = SortDescription(), int getDetails = VideoDbDetailsNone);
@@ -851,10 +849,10 @@ public:
   bool GetTvShowSeasonArt(int mediaId, std::map<int, std::map<std::string, std::string> > &seasonArt);
   bool GetArtTypes(const MediaType &mediaType, std::vector<std::string> &artTypes); //ODB PARTIALLY DONE
 
-  int AddTag(const std::string &tag);
-  void AddTagToItem(int idItem, int idTag, const std::string &type);
-  void RemoveTagFromItem(int idItem, int idTag, const std::string &type);
-  void RemoveTagsFromItem(int idItem, const std::string &type);
+  int AddTag(const std::string &tag); //ODB PARTIALLY DONE
+  void AddTagToItem(int idItem, int idTag, const std::string &type); //ODB PARTIALLY DONE
+  void RemoveTagFromItem(int idItem, int idTag, const std::string &type); //ODB PARTIALLY DONE
+  void RemoveTagsFromItem(int idItem, const std::string &type); //ODB PARTIALLY DONE
 
   virtual bool GetFilter(CDbUrl &videoUrl, Filter &filter, SortDescription &sorting);
 
