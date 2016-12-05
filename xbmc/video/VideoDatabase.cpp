@@ -4086,35 +4086,41 @@ void CVideoDatabase::GetBookMarksForFile(const std::string& strFilenameAndPath, 
       if (idFile < 0) return ;
       if (!bAppend)
         bookmarks.erase(bookmarks.begin(), bookmarks.end());
-      if (NULL == m_pDB.get()) return ;
-      if (NULL == m_pDS.get()) return ;
-
-      std::string strSQL=PrepareSQL("select * from bookmark where idFile=%i and type=%i order by timeInSeconds", idFile, (int)type);
-      m_pDS->query( strSQL );
-      while (!m_pDS->eof())
+     
+      std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+      
+      typedef odb::query<CODBBookmark> query;
+      
+      odb::result<CODBBookmark> res(m_cdb.getDB()->query<CODBBookmark>(query::file->idFile == idFile && query::type == (int)type));
+      for (auto i: res)
       {
         CBookmark bookmark;
-        bookmark.timeInSeconds = m_pDS->fv("timeInSeconds").get_asDouble();
+        bookmark.timeInSeconds = (int)i.m_timeInSeconds;
         bookmark.partNumber = partNumber;
-        bookmark.totalTimeInSeconds = m_pDS->fv("totalTimeInSeconds").get_asDouble();
-        bookmark.thumbNailImage = m_pDS->fv("thumbNailImage").get_asString();
-        bookmark.playerState = m_pDS->fv("playerState").get_asString();
-        bookmark.player = m_pDS->fv("player").get_asString();
+        bookmark.totalTimeInSeconds = (int)i.m_totalTimeInSeconds;
+        bookmark.thumbNailImage = i.m_thumbNailImage;
+        bookmark.playerState = i.m_playerState;
+        bookmark.player = i.m_player;
         bookmark.type = type;
         if (type == CBookmark::EPISODE)
         {
-          std::string strSQL2=PrepareSQL("select c%02d, c%02d from episode where c%02d=%i order by c%02d, c%02d", VIDEODB_ID_EPISODE_EPISODE, VIDEODB_ID_EPISODE_SEASON, VIDEODB_ID_EPISODE_BOOKMARK, m_pDS->fv("idBookmark").get_asInt(), VIDEODB_ID_EPISODE_SORTSEASON, VIDEODB_ID_EPISODE_SORTEPISODE);
+          //TODO: Needs to be implemented
+          /*std::string strSQL2=PrepareSQL("select c%02d, c%02d from episode where c%02d=%i order by c%02d, c%02d", VIDEODB_ID_EPISODE_EPISODE, VIDEODB_ID_EPISODE_SEASON, VIDEODB_ID_EPISODE_BOOKMARK, m_pDS->fv("idBookmark").get_asInt(), VIDEODB_ID_EPISODE_SORTSEASON, VIDEODB_ID_EPISODE_SORTEPISODE);
           m_pDS2->query(strSQL2);
           bookmark.episodeNumber = m_pDS2->fv(0).get_asInt();
           bookmark.seasonNumber = m_pDS2->fv(1).get_asInt();
-          m_pDS2->close();
+          m_pDS2->close();*/
         }
         bookmarks.push_back(bookmark);
-        m_pDS->next();
       }
-      //sort(bookmarks.begin(), bookmarks.end(), SortBookmarks);
-      m_pDS->close();
+      
+      if(odb_transaction)
+        odb_transaction->commit();
     }
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s exception - %s", __FUNCTION__, e.what());
   }
   catch (...)
   {
@@ -4145,8 +4151,17 @@ void CVideoDatabase::DeleteResumeBookMark(const std::string &strFilenameAndPath)
 
   try
   {
-    std::string sql = PrepareSQL("delete from bookmark where idFile=%i and type=%i", fileID, CBookmark::RESUME);
-    m_pDS->exec(sql);
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    typedef odb::query<CODBBookmark> query;
+    
+    m_cdb.getDB()->erase_query<CODBBookmark>(query::file->idFile == fileID && query::type == (int)CBookmark::RESUME);
+    
+    if(odb_transaction)
+      odb_transaction->commit();
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s exception - %s", __FUNCTION__, e.what());
   }
   catch(...)
   {
@@ -4181,38 +4196,57 @@ void CVideoDatabase::AddBookMarkToFile(const std::string& strFilenameAndPath, co
     int idFile = AddFile(strFilenameAndPath);
     if (idFile < 0)
       return;
-    if (NULL == m_pDB.get()) return ;
-    if (NULL == m_pDS.get()) return ;
-
-    std::string strSQL;
+      
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    
+    std::shared_ptr<CODBFile> odb_file(new CODBFile);
+    if(!m_cdb.getDB()->query_one<CODBFile>(odb::query<CODBFile>::idFile == idFile, *odb_file))
+      return;
+    
+    typedef odb::query<CODBBookmark> query;
+    query bookmark_query;
     int idBookmark=-1;
     if (type == CBookmark::RESUME) // get the same resume mark bookmark each time type
     {
-      strSQL=PrepareSQL("select idBookmark from bookmark where idFile=%i and type=1", idFile);
+      bookmark_query = query::file->idFile == idFile;
     }
     else if (type == CBookmark::STANDARD) // get the same bookmark again, and update. not sure here as a dvd can have same time in multiple places, state will differ thou
     {
       /* get a bookmark within the same time as previous */
       double mintime = bookmark.timeInSeconds - 0.5f;
       double maxtime = bookmark.timeInSeconds + 0.5f;
-      strSQL=PrepareSQL("select idBookmark from bookmark where idFile=%i and type=%i and (timeInSeconds between %f and %f) and playerState='%s'", idFile, (int)type, mintime, maxtime, bookmark.playerState.c_str());
+      bookmark_query = query::file->idFile == idFile && (query::timeInSeconds >= mintime && query::timeInSeconds <= maxtime) && query::playerState.like(bookmark.playerState);
     }
 
-    if (type != CBookmark::EPISODE)
+    CODBBookmark odb_Bookmark;
+    if (type != CBookmark::EPISODE && m_cdb.getDB()->query_one<CODBBookmark>(bookmark_query, odb_Bookmark))
     {
-      // get current id
-      m_pDS->query( strSQL );
-      if (m_pDS->num_rows() != 0)
-        idBookmark = m_pDS->get_field_value("idBookmark").get_asInt();
-      m_pDS->close();
+      odb_Bookmark.m_timeInSeconds = bookmark.timeInSeconds;
+      odb_Bookmark.m_totalTimeInSeconds = bookmark.totalTimeInSeconds;
+      odb_Bookmark.m_thumbNailImage = bookmark.thumbNailImage;
+      odb_Bookmark.m_player = bookmark.player;
+      odb_Bookmark.m_playerState = bookmark.playerState;
+      m_cdb.getDB()->update(odb_Bookmark);
     }
-    // update or insert depending if it existed before
-    if (idBookmark >= 0 )
-      strSQL=PrepareSQL("update bookmark set timeInSeconds = %f, totalTimeInSeconds = %f, thumbNailImage = '%s', player = '%s', playerState = '%s' where idBookmark = %i", bookmark.timeInSeconds, bookmark.totalTimeInSeconds, bookmark.thumbNailImage.c_str(), bookmark.player.c_str(), bookmark.playerState.c_str(), idBookmark);
     else
-      strSQL=PrepareSQL("insert into bookmark (idBookmark, idFile, timeInSeconds, totalTimeInSeconds, thumbNailImage, player, playerState, type) values(NULL,%i,%f,%f,'%s','%s','%s', %i)", idFile, bookmark.timeInSeconds, bookmark.totalTimeInSeconds, bookmark.thumbNailImage.c_str(), bookmark.player.c_str(), bookmark.playerState.c_str(), (int)type);
+    {
+      odb_Bookmark.m_file = odb_file;
+      odb_Bookmark.m_timeInSeconds = bookmark.timeInSeconds;
+      odb_Bookmark.m_totalTimeInSeconds = bookmark.totalTimeInSeconds;
+      odb_Bookmark.m_thumbNailImage = bookmark.thumbNailImage;
+      odb_Bookmark.m_player = bookmark.player;
+      odb_Bookmark.m_playerState = bookmark.playerState;
+      odb_Bookmark.m_type = (int)type;
+      
+      m_cdb.getDB()->persist(odb_Bookmark);
+    }
 
-    m_pDS->exec(strSQL);
+    if(odb_transaction)
+      odb_transaction->commit();
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s exception - %s", __FUNCTION__, e.what());
   }
   catch (...)
   {
@@ -4226,29 +4260,40 @@ void CVideoDatabase::ClearBookMarkOfFile(const std::string& strFilenameAndPath, 
   {
     int idFile = GetFileId(strFilenameAndPath);
     if (idFile < 0) return ;
-    if (NULL == m_pDB.get()) return ;
-    if (NULL == m_pDS.get()) return ;
+    
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    
+    typedef odb::query<CODBBookmark> query;
 
     /* a litle bit uggly, we clear first bookmark that is within one second of given */
     /* should be no problem since we never add bookmarks that are closer than that   */
     double mintime = bookmark.timeInSeconds - 0.5f;
     double maxtime = bookmark.timeInSeconds + 0.5f;
-    std::string strSQL = PrepareSQL("select idBookmark from bookmark where idFile=%i and type=%i and playerState like '%s' and player like '%s' and (timeInSeconds between %f and %f)", idFile, type, bookmark.playerState.c_str(), bookmark.player.c_str(), mintime, maxtime);
-
-    m_pDS->query( strSQL );
-    if (m_pDS->num_rows() != 0)
+    
+    CODBBookmark odb_Bookmark;
+    if(m_cdb.getDB()->query_one<CODBBookmark>(query::file->idFile == idFile
+                                                                     && query::type == (int)type
+                                                                     && query::playerState.like(bookmark.playerState)
+                                                                     && query::player.like(bookmark.player)
+                                                                     && (query::timeInSeconds >= mintime && query::timeInSeconds <= maxtime)
+                                              , odb_Bookmark))
     {
-      int idBookmark = m_pDS->get_field_value("idBookmark").get_asInt();
-      strSQL=PrepareSQL("delete from bookmark where idBookmark=%i",idBookmark);
-      m_pDS->exec(strSQL);
-      if (type == CBookmark::EPISODE)
+      m_cdb.getDB()->erase(odb_Bookmark);
+      
+      //TODO: Needs to be implemented
+      /*if (type == CBookmark::EPISODE)
       {
         strSQL=PrepareSQL("update episode set c%02d=-1 where idFile=%i and c%02d=%i", VIDEODB_ID_EPISODE_BOOKMARK, idFile, VIDEODB_ID_EPISODE_BOOKMARK, idBookmark);
         m_pDS->exec(strSQL);
-      }
+      }*/
     }
-
-    m_pDS->close();
+    
+    if(odb_transaction)
+      odb_transaction->commit();
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s (%s) exception - %s", __FUNCTION__, strFilenameAndPath.c_str(), e.what());
   }
   catch (...)
   {
@@ -4271,16 +4316,25 @@ void CVideoDatabase::ClearBookMarksOfFile(int idFile, CBookmark::EType type /*= 
 
   try
   {
-    if (NULL == m_pDB.get()) return ;
-    if (NULL == m_pDS.get()) return ;
+    std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+    
+    typedef odb::query<CODBBookmark> query;
+    
+    m_cdb.getDB()->erase_query<CODBBookmark>(query::file->idFile == idFile && query::type == (int)type);
 
-    std::string strSQL=PrepareSQL("delete from bookmark where idFile=%i and type=%i", idFile, (int)type);
-    m_pDS->exec(strSQL);
-    if (type == CBookmark::EPISODE)
+    //TODO: Needs to be implemented
+    /*if (type == CBookmark::EPISODE)
     {
       strSQL=PrepareSQL("update episode set c%02d=-1 where idFile=%i", VIDEODB_ID_EPISODE_BOOKMARK, idFile);
       m_pDS->exec(strSQL);
-    }
+    }*/
+    
+    if(odb_transaction)
+      odb_transaction->commit();
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s (%d) exception - %s", __FUNCTION__, idFile, e.what());
   }
   catch (...)
   {
@@ -4826,18 +4880,27 @@ bool CVideoDatabase::GetResumePoint(CVideoInfoTag& tag)
     }
     else
     {
-      std::string strSQL=PrepareSQL("select timeInSeconds, totalTimeInSeconds from bookmark where idFile=%i and type=%i order by timeInSeconds", tag.m_iFileId, CBookmark::RESUME);
-      m_pDS2->query( strSQL );
-      if (!m_pDS2->eof())
+      std::shared_ptr<odb::transaction> odb_transaction (m_cdb.getTransaction());
+      typedef odb::query<CODBBookmark> query;
+      
+      CODBBookmark odb_bookmark;
+      //TODO: Previously the code could support multiple results, but there should not be multiple resume points
+      if(m_cdb.getDB()->query_one<CODBBookmark>(query::file->idFile == tag.m_iFileId && query::type == (int)CBookmark::RESUME, odb_bookmark))
       {
-        tag.m_resumePoint.timeInSeconds = m_pDS2->fv(0).get_asDouble();
-        tag.m_resumePoint.totalTimeInSeconds = m_pDS2->fv(1).get_asDouble();
+        tag.m_resumePoint.timeInSeconds = odb_bookmark.m_timeInSeconds;
+        tag.m_resumePoint.totalTimeInSeconds = odb_bookmark.m_totalTimeInSeconds;
         tag.m_resumePoint.partNumber = 0; // regular files or non-iso stacks don't need partNumber
         tag.m_resumePoint.type = CBookmark::RESUME;
         match = true;
       }
-      m_pDS2->close();
+      
+      if(odb_transaction)
+        odb_transaction->commit();
     }
+  }
+  catch (std::exception& e)
+  {
+    CLog::Log(LOGERROR, "%s (%s) exception - %s", __FUNCTION__, tag.m_strFileNameAndPath.c_str(), e.what());
   }
   catch (...)
   {
@@ -4912,13 +4975,6 @@ CVideoInfoTag CVideoDatabase::GetDetailsForMovie(const odb::result<ODBView_Movie
     details.m_dateAdded = CDateTime(record->movie->m_file->m_dateAdded.getDateAsTm());
   }
   
-  if(record->movie->m_resumeBookmark.load())
-  {
-    details.m_resumePoint.timeInSeconds = record->movie->m_resumeBookmark->m_timeInSeconds;
-    details.m_resumePoint.totalTimeInSeconds = record->movie->m_resumeBookmark->m_totalTimeInSeconds;
-    details.m_resumePoint.type = CBookmark::RESUME;
-  }
-  
   if(record->movie->m_defaultRating.load())
   {
     details.m_iUserRating = record->movie->m_userrating;
@@ -4949,6 +5005,22 @@ CVideoInfoTag CVideoDatabase::GetDetailsForMovie(const odb::result<ODBView_Movie
   }
   
   movieTime += XbmcThreads::SystemClockMillis() - time; time = XbmcThreads::SystemClockMillis();
+  
+  //Load the bookmark
+  CODBBookmark odbBookmark;
+  if (m_cdb.getDB()->query_one<CODBBookmark>(odb::query<CODBBookmark>::file->idFile == details.m_iFileId
+                                             && odb::query<CODBBookmark>::type == (int)CBookmark::RESUME, odbBookmark))
+  {
+    details.m_resumePoint.player = odbBookmark.m_player;
+    
+    details.m_resumePoint.timeInSeconds = (int)odbBookmark.m_timeInSeconds;
+    details.m_resumePoint.totalTimeInSeconds = (int)odbBookmark.m_totalTimeInSeconds;
+    details.m_resumePoint.thumbNailImage = odbBookmark.m_thumbNailImage;
+    details.m_resumePoint.playerState = odbBookmark.m_playerState;
+    details.m_resumePoint.player = odbBookmark.m_player;
+    details.m_resumePoint.type = CBookmark::RESUME;
+    CLog::Log(LOGERROR, "123");
+  }
 
   if (getDetails)
   {

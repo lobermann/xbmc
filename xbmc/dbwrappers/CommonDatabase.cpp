@@ -66,7 +66,7 @@ CCommonDatabase::CCommonDatabase()
     m_db = std::shared_ptr<odb::core::database>( new odb::sqlite::database(dbfolder + "/common.db",
                                                                             SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE));
     //m_db->tracer(odb::stderr_full_tracer);
-    m_db->tracer(odb::stderr_tracer);
+    //m_db->tracer(odb::stderr_tracer);
   }
 
   if(!odb::session::has_current())

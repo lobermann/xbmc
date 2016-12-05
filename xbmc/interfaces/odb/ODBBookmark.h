@@ -42,6 +42,7 @@ public:
   double m_totalTimeInSeconds;
   std::string m_thumbNailImage;
   std::string m_player;
+  std::string m_playerState;
   int m_type;
   
   //Members not stored in the db, used for sync ...
