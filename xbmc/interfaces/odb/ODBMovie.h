@@ -76,7 +76,6 @@ public:
 #pragma db type("VARCHAR(255)")
   std::string m_sortTitle;
   int m_runtime;
-#pragma db type("VARCHAR(2048)")
   std::string m_mpaa;
   int m_top250;
   std::vector< odb::lazy_shared_ptr<CODBGenre> > m_genres;
@@ -114,7 +113,6 @@ private:
 #pragma db index member(m_title)
 #pragma db index member(m_defaultRating)
 #pragma db index member(m_sortTitle)
-#pragma db index member(m_mpaa)
 #pragma db index member(m_originalTitle)
 #pragma db index member(m_basePath)
 #pragma db index member(m_parentPath)

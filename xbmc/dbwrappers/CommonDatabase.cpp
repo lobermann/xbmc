@@ -61,7 +61,7 @@ CCommonDatabase::CCommonDatabase()
   if (settings.type == "mysql")
   {
     m_db = std::shared_ptr<odb::core::database>( new odb::mysql::database(settings.user, settings.pass, "common", settings.host, std::stoi(settings.port)));
-    m_db->tracer(odb::stderr_full_tracer);
+    //m_db->tracer(odb::stderr_full_tracer);
   }
 
   //use sqlite3 per default

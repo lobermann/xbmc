@@ -43,11 +43,11 @@ public:
   unsigned long m_idPath;
 #pragma db type("VARCHAR(255)")
   std::string m_path;
-#pragma db type("VARCHAR(2048)")
+#pragma db type("VARCHAR(255)")
   std::string m_content;
-#pragma db type("VARCHAR(1024)")
+#pragma db type("VARCHAR(255)")
   std::string m_scraper;
-#pragma db type("VARCHAR(512)")
+#pragma db type("VARCHAR(255)")
   std::string m_hash;
   int m_scanRecursive;
   bool m_useFolderNames;
