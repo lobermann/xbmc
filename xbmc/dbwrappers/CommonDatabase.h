@@ -20,13 +20,15 @@ class DatabaseSettings;
 class CCommonDatabase
 {
 public:
-  CCommonDatabase();
+
   void init();
+  static CCommonDatabase &GetInstance();
   
   std::shared_ptr<odb::database> getDB(){ return m_db; };
   std::shared_ptr<odb::transaction> getTransaction();
   
 private:
+  CCommonDatabase();
   std::shared_ptr<odb::database> m_db;
   std::shared_ptr<odb::session> m_odb_session;
 };

@@ -47,6 +47,12 @@
 #include "settings/AdvancedSettings.h"
 #include "utils/log.h"
 
+CCommonDatabase &CCommonDatabase::GetInstance()
+{
+  static CCommonDatabase s_commondb;
+  return s_commondb;
+}
+
 CCommonDatabase::CCommonDatabase()
 {
   DatabaseSettings settings = &g_advancedSettings.m_databaseCommon ? g_advancedSettings.m_databaseCommon : DatabaseSettings();

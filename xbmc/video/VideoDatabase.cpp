@@ -104,8 +104,9 @@ using namespace ADDON;
 using namespace KODI::MESSAGING;
 
 //********************************************************************************************************************************
-CVideoDatabase::CVideoDatabase(void)
+CVideoDatabase::CVideoDatabase(void) : m_cdb(CCommonDatabase::GetInstance())
 {
+
 }
 
 //********************************************************************************************************************************

@@ -66,7 +66,7 @@ void CDatabaseManager::Initialize(bool addonsOnly)
   { CPVRDatabase db; UpdateDatabase(db, &g_advancedSettings.m_databaseTV); }
   { CEpgDatabase db; UpdateDatabase(db, &g_advancedSettings.m_databaseEpg); }
   { CActiveAEDSPDatabase db; UpdateDatabase(db, &g_advancedSettings.m_databaseADSP); }
-  { CCommonDatabase db; db.init(); }
+  { CCommonDatabase db = CCommonDatabase::GetInstance(); db.init(); }
   CLog::Log(LOGDEBUG, "%s, updating databases... DONE", __FUNCTION__);
   m_bIsUpgrading = false;
 }
