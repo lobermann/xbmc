@@ -47,6 +47,36 @@
 #include "settings/AdvancedSettings.h"
 #include "utils/log.h"
 
+class odb_logtracer: public odb::tracer
+{
+public:
+  odb_logtracer(){};
+  virtual ~odb_logtracer(){};
+  
+  virtual void
+  prepare (odb::connection& c, const odb::statement& s)
+  {
+    CLog::Log(LOGDEBUG, "commondb: PREPARE - %s", s.text());
+  }
+  virtual void
+  execute (odb::connection& c, const odb::statement& s)
+  {
+    CLog::Log(LOGDEBUG, "commondb: EXECUTE - %s", s.text());
+  }
+  virtual void
+  execute (odb::connection& c, const char* statement)
+  {
+    CLog::Log(LOGDEBUG, "commondb: %s", statement);
+  }
+  virtual void
+  deallocate (odb::connection& c, const odb::statement& s)
+  {
+    CLog::Log(LOGDEBUG, "commondb: DEALLOCATE - %s", s.text());
+  }
+};
+
+odb_logtracer odb_tracer;
+
 CCommonDatabase &CCommonDatabase::GetInstance()
 {
   static CCommonDatabase s_commondb;
@@ -61,7 +91,6 @@ CCommonDatabase::CCommonDatabase()
   if (settings.type == "mysql")
   {
     m_db = std::shared_ptr<odb::core::database>( new odb::mysql::database(settings.user, settings.pass, "common", settings.host, std::stoi(settings.port)));
-    //m_db->tracer(odb::stderr_full_tracer);
   }
 
   //use sqlite3 per default
@@ -71,9 +100,9 @@ CCommonDatabase::CCommonDatabase()
     std::string dbfolder = CSpecialProtocol::TranslatePath(CProfilesManager::GetInstance().GetDatabaseFolder());
     m_db = std::shared_ptr<odb::core::database>( new odb::sqlite::database(dbfolder + "/common.db",
                                                                             SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE));
-    //m_db->tracer(odb::stderr_full_tracer);
-    //m_db->tracer(odb::stderr_tracer);
   }
+  
+  m_db->tracer(odb_tracer);
 
   if(!odb::session::has_current())
     m_odb_session = std::shared_ptr<odb::session>(new odb::session);
