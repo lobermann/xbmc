@@ -1980,6 +1980,8 @@ void CVideoDatabase::AddTagToItem(int media_id, int tag_id, const std::string &t
       if (!m_cdb.getDB()->query_one<CODBMovie>(odb::query<CODBMovie>::idMovie == media_id, odbMovie))
         return;
       
+      m_cdb.getDB()->load(odbMovie, odbMovie.section_foreign);
+      
       //Make sure it is not already added
       for (auto& i : odbMovie.m_tags)
       {
@@ -1991,7 +1993,7 @@ void CVideoDatabase::AddTagToItem(int media_id, int tag_id, const std::string &t
       }
       
       odbMovie.m_tags.push_back(odbTag);
-      m_cdb.getDB()->update(odbMovie);
+      m_cdb.getDB()->update(odbMovie, odbMovie.section_foreign);
     }
     //TODO: Implement other needed types
     else
@@ -2031,6 +2033,8 @@ void CVideoDatabase::RemoveTagFromItem(int media_id, int tag_id, const std::stri
       if (!m_cdb.getDB()->query_one<CODBMovie>(odb::query<CODBMovie>::idMovie == media_id, odbMovie))
         return;
       
+      m_cdb.getDB()->load(odbMovie, odbMovie.section_foreign);
+      
       for (std::vector< odb::lazy_shared_ptr<CODBTag> >::iterator i = odbMovie.m_tags.begin(); i != odbMovie.m_tags.end(); i++)
       {
         if (!(*i).load())
@@ -2043,7 +2047,7 @@ void CVideoDatabase::RemoveTagFromItem(int media_id, int tag_id, const std::stri
         }
       }
       
-      m_cdb.getDB()->update(odbMovie);
+      m_cdb.getDB()->update(odbMovie, odbMovie.section_foreign);
     }
     //TODO: Implement other needed types
     else
@@ -2079,13 +2083,15 @@ void CVideoDatabase::RemoveTagsFromItem(int media_id, const std::string &type)
       if (!m_cdb.getDB()->query_one<CODBMovie>(odb::query<CODBMovie>::idMovie == media_id, odbMovie))
         return;
       
+      m_cdb.getDB()->load(odbMovie, odbMovie.section_foreign);
+      
       //Make sure it is not already added
       for (std::vector< odb::lazy_shared_ptr<CODBTag> >::iterator i = odbMovie.m_tags.begin(); i != odbMovie.m_tags.end();)
       {
           i = odbMovie.m_tags.erase(i);
       }
       
-      m_cdb.getDB()->update(odbMovie);
+      m_cdb.getDB()->update(odbMovie, odbMovie.section_foreign);
     }
     //TODO: Implement other needed types
     else
@@ -2643,6 +2649,9 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
     if (!m_cdb.getDB()->query_one<CODBMovie>(odb::query<CODBMovie>::idMovie == idMovie, odb_movie))
       return idMovie;
     
+    m_cdb.getDB()->load(odb_movie, odb_movie.section_foreign);
+    m_cdb.getDB()->load(odb_movie, odb_movie.section_artwork);
+    
     //We need the file object many times below
     odb_movie.m_file.load();
 
@@ -2760,6 +2769,8 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
     SetMovieDetailsValues(odb_movie, details);
     
     m_cdb.getDB()->update(odb_movie);
+    m_cdb.getDB()->update(odb_movie, odb_movie.section_foreign);
+    m_cdb.getDB()->update(odb_movie, odb_movie.section_artwork);
     if(odb_transaction)
       odb_transaction->commit();
 
@@ -2789,6 +2800,9 @@ int CVideoDatabase::UpdateDetailsForMovie(int idMovie, CVideoInfoTag& details, c
     CODBMovie odb_movie;
     if (!m_cdb.getDB()->query_one<CODBMovie>(odb::query<CODBMovie>::idMovie == idMovie, odb_movie))
       return idMovie;
+    
+    m_cdb.getDB()->load(odb_movie, odb_movie.section_foreign);
+    m_cdb.getDB()->load(odb_movie, odb_movie.section_artwork);
 
     // process the link table updates
     if (updatedDetails.find("genre") != updatedDetails.end())
@@ -2860,6 +2874,10 @@ int CVideoDatabase::UpdateDetailsForMovie(int idMovie, CVideoInfoTag& details, c
     }*/
 
     SetMovieDetailsValues(odb_movie, details);
+    
+    m_cdb.getDB()->update(odb_movie);
+    m_cdb.getDB()->update(odb_movie, odb_movie.section_foreign);
+    m_cdb.getDB()->update(odb_movie, odb_movie.section_artwork);
 
     if(odb_transaction)
       odb_transaction->commit();
@@ -4018,6 +4036,7 @@ void CVideoDatabase::GetFilePathById(int idMovie, std::string &filePath, VIDEODB
       CODBMovie movie;
       if (m_cdb.getDB()->query_one<CODBMovie>(odb::query<CODBMovie>::idMovie == idMovie, movie))
       {
+        m_cdb.getDB()->load(movie, movie.section_foreign);
         if (!movie.m_file.load() || movie.m_file->m_path.load())
           return;
         
@@ -4434,6 +4453,8 @@ void CVideoDatabase::DeleteMovie(int idMovie, bool bKeepId /* = false */)
       CODBMovie res;
       if(!m_cdb.getDB()->query_one<CODBMovie>(odb::query<CODBMovie>::idMovie == idMovie, res))
         return;
+      
+      m_cdb.getDB()->load(res, res.section_foreign);
       
       if(!res.m_file.load() || !res.m_file->m_path.load())
         return;
@@ -4925,15 +4946,6 @@ CVideoInfoTag CVideoDatabase::GetDetailsForMovie(const odb::result<ODBView_Movie
   details.SetPlot(record->movie->m_plot);
   details.SetPlotOutline(record->movie->m_plotoutline);
   details.SetTagLine(record->movie->m_tagline);
-  for (auto i: record->movie->m_writingCredits)
-  {
-    if (!i.load())
-      continue;
-    if (!i->m_person.load())
-      continue;
-    
-    details.m_writingCredits.emplace_back(StringUtils::Trim(i->m_person->m_name));
-  }
   
   details.m_strPictureURL.m_spoof = record->movie->m_thumbUrl_spoof;
   details.m_strPictureURL.m_xml = record->movie->m_thumbUrl;
@@ -4945,14 +4957,17 @@ CVideoInfoTag CVideoDatabase::GetDetailsForMovie(const odb::result<ODBView_Movie
   details.SetOriginalTitle(record->movie->m_originalTitle);
   details.SetTrailer(record->movie->m_trailer);
   details.m_fanart.m_xml = record->movie->m_fanart;
+
+  details.SetUserrating(record->movie->m_userrating);
+  details.SetPremiered(CDateTime(record->movie->m_premiered.getDateAsTm()));
+  details.m_iUserRating = record->movie->m_userrating;
+  
+  m_cdb.getDB()->load(*(record->movie), record->movie->section_foreign);
   
   if(record->movie->m_basePath.load())
     details.SetBasePath(record->movie->m_basePath->m_path);
   if(record->movie->m_parentPath.load())
     details.m_parentPathID = record->movie->m_parentPath->m_idPath;
-
-  details.SetUserrating(record->movie->m_userrating);
-  details.SetPremiered(CDateTime(record->movie->m_premiered.getDateAsTm()));
   
   if (record->movie->m_set.load())
   {
@@ -4976,9 +4991,9 @@ CVideoInfoTag CVideoDatabase::GetDetailsForMovie(const odb::result<ODBView_Movie
     details.m_dateAdded = CDateTime(record->movie->m_file->m_dateAdded.getDateAsTm());
   }
   
+  m_cdb.getDB()->load(*(record->movie), record->movie->section_foreign);
   if(record->movie->m_defaultRating.load())
   {
-    details.m_iUserRating = record->movie->m_userrating;
     details.SetRating(record->movie->m_defaultRating->m_rating,
                       record->movie->m_defaultRating->m_votes,
                       record->movie->m_defaultRating->m_ratingType, true);
@@ -5059,6 +5074,16 @@ CVideoInfoTag CVideoDatabase::GetDetailsForMovie(const odb::result<ODBView_Movie
           continue;
         
         details.m_director.emplace_back(i->m_person->m_name);
+      }
+      
+      for (auto i: record->movie->m_writingCredits)
+      {
+        if (!i.load())
+          continue;
+        if (!i->m_person.load())
+          continue;
+        
+        details.m_writingCredits.emplace_back(StringUtils::Trim(i->m_person->m_name));
       }
     }
 
@@ -5589,8 +5614,10 @@ void CVideoDatabase::SetArtForItem(int mediaId, const MediaType &mediaType, cons
           art->m_type = artType;
           m_cdb.getDB()->persist(art);
           
+          m_cdb.getDB()->load(odb_movie, odb_movie.section_artwork);
           odb_movie.m_artwork.push_back(art);
           m_cdb.getDB()->update(odb_movie);
+          m_cdb.getDB()->update(odb_movie, odb_movie.section_artwork);
         }
       }
     }
@@ -5626,6 +5653,7 @@ bool CVideoDatabase::GetArtForItem(int mediaId, const MediaType &mediaType, std:
       CODBMovie odbMovie;
       if (m_cdb.getDB()->query_one<CODBMovie>(query::idMovie == mediaId, odbMovie))
       {
+        m_cdb.getDB()->load(odbMovie, odbMovie.section_artwork);
         for (auto& i: odbMovie.m_artwork)
         {
           if (i.load())
@@ -5712,6 +5740,7 @@ bool CVideoDatabase::RemoveArtForItem(int mediaId, const MediaType &mediaType, c
       CODBMovie odbMovie;
       if (m_cdb.getDB()->query_one<CODBMovie>(odb::query<CODBMovie>::idMovie == mediaId, odbMovie))
       {
+        m_cdb.getDB()->load(odbMovie, odbMovie.section_artwork);
         for (std::vector<odb::lazy_shared_ptr<CODBArt> >::iterator i = odbMovie.m_artwork.begin();
              i != odbMovie.m_artwork.end();)
         {
@@ -8111,6 +8140,7 @@ bool CVideoDatabase::GetYearsNav(const std::string& strBaseDir, CFileItemList& i
       odb::result<CODBMovie> res(m_cdb.getDB()->query<CODBMovie>()); //TODO: Just returns all now, filter needs to be added
       for (odb::result<CODBMovie>::iterator i = res.begin(); i != res.end(); i++)
       {
+        m_cdb.getDB()->load(*i, i->section_foreign);
         if (!i->m_file.load() || !i->m_file->m_path.load())
           continue;
         
@@ -9940,6 +9970,7 @@ void CVideoDatabase::GetMoviesByName(const std::string& strSearch, CFileItemList
     odb::result<CODBMovie> res(m_cdb.getDB()->query<CODBMovie>(odb::query<CODBMovie>::title.like(strModSearch)));
     for (odb::result<CODBMovie>::iterator i = res.begin(); i != res.end(); i++)
     {
+      m_cdb.getDB()->load(*i, i->section_foreign);
       if(!i->m_file.load() || !i->m_file->m_path.load())
         continue;
       
@@ -10151,6 +10182,7 @@ void CVideoDatabase::GetEpisodesByPlot(const std::string& strSearch, CFileItemLi
 
 void CVideoDatabase::GetMoviesByPlot(const std::string& strSearch, CFileItemList& items)
 {
+  //TODO: GetMoviesByXXXX functions could use a dedicated View to reduce loading of foreign elements
   std::string strModSearch = "%"+strSearch+"%";
   
   try
@@ -10162,6 +10194,7 @@ void CVideoDatabase::GetMoviesByPlot(const std::string& strSearch, CFileItemList
                                                                odb::query<CODBMovie>::tagline.like(strModSearch)));
     for (odb::result<CODBMovie>::iterator i = res.begin(); i != res.end(); i++)
     {
+      m_cdb.getDB()->load(*i, i->section_foreign);
       if(!i->m_file.load() || !i->m_file->m_path.load())
         continue;
       

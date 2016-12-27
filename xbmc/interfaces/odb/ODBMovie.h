@@ -11,6 +11,7 @@
 
 #include <odb/core.hxx>
 #include <odb/lazy-ptr.hxx>
+#include <odb/section.hxx>
 
 #include <map>
 #include <memory>
@@ -63,14 +64,11 @@ public:
   
 #pragma db id auto
   unsigned long m_idMovie;
-  odb::lazy_shared_ptr<CODBFile> m_file;
 #pragma db type("VARCHAR(255)")
   std::string m_title;
   std::string m_plot;
   std::string m_plotoutline;
   std::string m_tagline;
-  odb::lazy_shared_ptr<CODBRating> m_defaultRating;
-  std::vector< odb::lazy_shared_ptr<CODBRating> > m_ratings;
   std::string m_credits;
   std::string m_thumbUrl;
 #pragma db type("VARCHAR(255)")
@@ -78,29 +76,56 @@ public:
   int m_runtime;
   std::string m_mpaa;
   int m_top250;
-  std::vector< odb::lazy_shared_ptr<CODBGenre> > m_genres;
-  std::vector< odb::lazy_shared_ptr<CODBPersonLink> > m_directors;
-  std::vector< odb::lazy_shared_ptr<CODBPersonLink> > m_actors;
-  std::vector< odb::lazy_shared_ptr<CODBPersonLink> > m_writingCredits;
+  int m_userrating;
+  std::string m_trailer;
+  std::string m_fanart;
+#pragma db type("VARCHAR(255)")
+  CODBDate m_premiered;
 #pragma db type("VARCHAR(255)")
   std::string m_originalTitle;
   std::string m_thumbUrl_spoof;
-  std::vector< odb::lazy_shared_ptr<CODBStudio> > m_studios;
-  std::vector< odb::lazy_shared_ptr<CODBTag> > m_tags;
-  std::string m_trailer;
-  std::string m_fanart;
-  std::vector< odb::lazy_shared_ptr<CODBArt> > m_artwork;
-  std::vector< odb::lazy_shared_ptr<CODBCountry> > m_countries;
+#pragma db section(section_foreign)
+  odb::lazy_shared_ptr<CODBFile> m_file;
+#pragma db section(section_foreign)
   odb::lazy_shared_ptr<CODBPath> m_basePath;
+#pragma db section(section_foreign)
   odb::lazy_shared_ptr<CODBPath> m_parentPath;
+#pragma db section(section_foreign)
+  odb::lazy_shared_ptr<CODBRating> m_defaultRating;
+#pragma db section(section_foreign)
+  std::vector< odb::lazy_shared_ptr<CODBRating> > m_ratings;
+#pragma db section(section_foreign)
+  std::vector< odb::lazy_shared_ptr<CODBGenre> > m_genres;
+#pragma db section(section_foreign)
+  std::vector< odb::lazy_shared_ptr<CODBPersonLink> > m_directors;
+#pragma db section(section_foreign)
+  std::vector< odb::lazy_shared_ptr<CODBPersonLink> > m_actors;
+#pragma db section(section_foreign)
+  std::vector< odb::lazy_shared_ptr<CODBPersonLink> > m_writingCredits;
+#pragma db section(section_foreign)
+  std::vector< odb::lazy_shared_ptr<CODBStudio> > m_studios;
+#pragma db section(section_foreign)
+  std::vector< odb::lazy_shared_ptr<CODBTag> > m_tags;
+#pragma db section(section_foreign)
+  std::vector< odb::lazy_shared_ptr<CODBCountry> > m_countries;
+#pragma db section(section_foreign)
   odb::lazy_shared_ptr<CODBSet> m_set;
-  int m_userrating;
-#pragma db type("VARCHAR(255)")
-  CODBDate m_premiered;
+#pragma db section(section_foreign)
   std::vector< odb::lazy_shared_ptr<CODBBookmark> > m_bookmarks;
+#pragma db section(section_foreign)
   odb::lazy_shared_ptr<CODBBookmark> m_resumeBookmark;
+#pragma db section(section_foreign)
   std::vector< odb::lazy_shared_ptr<CODBUniqueID> > m_ids;
+#pragma db section(section_foreign)
   odb::lazy_shared_ptr<CODBUniqueID> m_defaultID;
+#pragma db section(section_artwork)
+  std::vector< odb::lazy_shared_ptr<CODBArt> > m_artwork;
+  
+#pragma db load(lazy) update(change)
+  odb::section section_foreign;
+  
+#pragma db load(lazy) update(change)
+  odb::section section_artwork;
   
   //Members not stored in the db, used for sync ...
 #pragma db transient
