@@ -1125,6 +1125,14 @@ bool CDateTime::SetFromRFC1123DateTime(const std::string &dateTime)
   return SetDateTime(year, month, day, hour, min, sec);
 }
 
+bool CDateTime::SetFromULongLong(ULONGLONG& time)
+{
+  ULARGE_INTEGER ulint;
+  ulint.QuadPart = time;
+  FromULargeInt(ulint);
+  return true;
+}
+
 CDateTime CDateTime::FromDateString(const std::string &date)
 {
   CDateTime dt;
@@ -1539,6 +1547,13 @@ std::string CDateTime::GetAsW3CDateTime(bool asUtc /* = false */) const
 
   CDateTimeSpan bias = GetTimezoneBias();
   return result + StringUtils::Format("%c%02i:%02i", (bias.GetSecondsTotal() >= 0 ? '+' : '-'), abs(bias.GetHours()), abs(bias.GetMinutes())).c_str();
+}
+
+ULONGLONG CDateTime::GetAsULongLong() const
+{
+  ULARGE_INTEGER ulint;
+  ToULargeInt(ulint);
+  return ulint.QuadPart;
 }
 
 int CDateTime::MonthStringToMonthNum(const std::string& month)

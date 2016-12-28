@@ -818,7 +818,7 @@ int CVideoDatabase::AddPath(const std::string& strPath, const std::string &paren
     path.m_path = strPath1;
     
     if (dateAdded.IsValid())
-      path.m_dateAdded.setDateFromTm(dateAdded.GetAsTm());
+      path.m_dateAdded = CODBDate(dateAdded.GetAsULongLong(), dateAdded.GetAsDBDateTime());
     
     if (idParentPath >= 0)
     {
@@ -1078,9 +1078,7 @@ void CVideoDatabase::UpdateFileDateAdded(int idFile, const std::string& strFileN
     if (!m_cdb.getDB()->query_one<CODBFile>(query::idFile == idFile, file))
       return;
     
-    tm finDate = finalDateAdded.GetAsTm();
-    
-    file.m_dateAdded.setDateFromTm(finDate);
+    file.m_dateAdded.setDateTime(finalDateAdded.GetAsULongLong(), finalDateAdded.GetAsDBDateTime());
     m_cdb.getDB()->update(file);
     
     if(odb_transaction)
@@ -2507,9 +2505,17 @@ bool CVideoDatabase::GetFileInfo(const std::string& strFilenameAndPath, CVideoIn
       ConstructPath(details.m_strFileNameAndPath, details.m_strPath, strFileName);
       details.m_playCount = std::max(details.m_playCount, static_cast<int>(odbFile.m_playCount)); //TODO: Replace by signed int?
       if (!details.m_lastPlayed.IsValid())
-        details.m_lastPlayed = CDateTime(odbFile.m_lastPlayed.getDateAsTm());
+      {
+        CDateTime datetime;
+        datetime.FromDBDateTime(odbFile.m_lastPlayed.m_date);
+        details.m_lastPlayed = datetime;
+      }
       if (!details.m_dateAdded.IsValid())
-        details.m_dateAdded = CDateTime(odbFile.m_dateAdded.getDateAsTm());
+      {
+        CDateTime datetime;
+        datetime.FromDBDateTime(odbFile.m_dateAdded.m_date);
+        details.m_dateAdded = datetime;
+      }
       if (!details.m_resumePoint.IsSet())
       {
         CODBBookmark odbBookmark;
@@ -2750,8 +2756,9 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
     if (!details.HasUniqueID() && details.HasYear())
     { // query DB for any movies matching online id and year
       ODBView_Movie_File_UID res;
+      
       if (m_cdb.getDB()->query_one<ODBView_Movie_File_UID>(odb::query<ODBView_Movie_File_UID>::CODBUniqueID::value == details.GetUniqueID()
-                                                           && odb::query<ODBView_Movie_File_UID>::CODBMovie::premiered.year == details.GetYear()
+                                                           && odb::query<ODBView_Movie_File_UID>::CODBMovie::premiered.date.like(std::to_string(details.GetYear())+"%")
                                                            && odb::query<ODBView_Movie_File_UID>::CODBMovie::idMovie != idMovie
                                                            && odb::query<ODBView_Movie_File_UID>::CODBFile::playCount > 0
                                                            , res))
@@ -3462,12 +3469,15 @@ void CVideoDatabase::SetMovieDetailsValues(CODBMovie& odbMovie, CVideoInfoTag& d
   if (details.HasPremiered())
   {
     //TODO: HACK, date is not correct when called by CThumbExtractor::DoWork(), needs to be checked why that is
-    tm premtime = details.GetPremiered().GetAsTm();
-    if(premtime.tm_year > 70)
-      odbMovie.m_premiered.setDateFromTm(premtime);
+    ULONGLONG ulongtime = details.GetPremiered().GetAsULongLong();
+    if(ulongtime > 0)
+      odbMovie.m_premiered.setDateTime(ulongtime, details.GetPremiered().GetAsDBDateTime());
   }
   else
-    odbMovie.m_premiered.m_year = details.GetYear();
+  {
+    CDateTime yeartime(details.GetYear(), 1, 1, 0, 0, 0);
+    odbMovie.m_premiered.setDateTime(yeartime.GetAsULongLong(), yeartime.GetAsDBDateTime()) ;
+  }
 }
 
 void CVideoDatabase::SetSetDetailsArtwork(CODBSet& odbSet, const std::map<std::string, std::string>& artwork)
@@ -4959,7 +4969,9 @@ CVideoInfoTag CVideoDatabase::GetDetailsForMovie(const odb::result<ODBView_Movie
   details.m_fanart.m_xml = record->movie->m_fanart;
 
   details.SetUserrating(record->movie->m_userrating);
-  details.SetPremiered(CDateTime(record->movie->m_premiered.getDateAsTm()));
+  CDateTime premiered;
+  premiered.SetFromULongLong(record->movie->m_premiered.m_ulong_date);
+  details.SetPremiered(premiered);
   details.m_iUserRating = record->movie->m_userrating;
   
   m_cdb.getDB()->load(*(record->movie), record->movie->section_foreign);
@@ -4987,8 +4999,12 @@ CVideoInfoTag CVideoDatabase::GetDetailsForMovie(const odb::result<ODBView_Movie
     ConstructPath(details.m_strFileNameAndPath,details.m_strPath,strFileName);
     
     details.m_playCount = record->movie->m_file->m_playCount;
-    details.m_lastPlayed = CDateTime(record->movie->m_file->m_lastPlayed.getDateAsTm());
-    details.m_dateAdded = CDateTime(record->movie->m_file->m_dateAdded.getDateAsTm());
+    CDateTime lastplayed;
+    lastplayed.SetFromULongLong(record->movie->m_file->m_lastPlayed.m_ulong_date);
+    details.m_lastPlayed = lastplayed;
+    CDateTime dateadded;
+    dateadded.SetFromULongLong(record->movie->m_file->m_dateAdded.m_ulong_date);
+    details.m_dateAdded = dateadded;
   }
   
   m_cdb.getDB()->load(*(record->movie), record->movie->section_foreign);
@@ -6828,9 +6844,14 @@ void CVideoDatabase::SetPlayCount(const CFileItem &item, int count, const CDateT
       odb_file.m_playCount = count;
     
     if (date.IsValid())
-      odb_file.m_lastPlayed.setDateFromTm(date.GetAsTm());
+    {
+      odb_file.m_lastPlayed.setDateTime(date.GetAsULongLong(), date.GetAsDBDateTime());
+    }
     else
-      odb_file.m_lastPlayed.setDateFromTm(CDateTime::GetCurrentDateTime().GetAsTm());
+    {
+      CDateTime current = CDateTime::GetCurrentDateTime();
+      odb_file.m_lastPlayed.setDateTime(current.GetAsULongLong(), current.GetAsDBDateTime());
+    }
     
     m_cdb.getDB()->update(odb_file);
     
@@ -8144,7 +8165,8 @@ bool CVideoDatabase::GetYearsNav(const std::string& strBaseDir, CFileItemList& i
         if (!i->m_file.load() || !i->m_file->m_path.load())
           continue;
         
-        CDateTime cdt(i->m_premiered.getDateAsTm());
+        CDateTime cdt;
+        cdt.SetFromULongLong(i->m_premiered.m_ulong_date);
         int lYear = cdt.GetYear();
         
         int playCount = i->m_file->m_playCount; //TODO: Figure out where / why this is needed and if this value is correct
@@ -8160,6 +8182,10 @@ bool CVideoDatabase::GetYearsNav(const std::string& strBaseDir, CFileItemList& i
             continue;
           }
           mapItems.insert(std::pair<int, std::pair<std::string,int> >(lYear, std::pair<std::string, int>(std::to_string(lYear), playCount)));
+        }
+        else
+        {
+          it->second.second += playCount;
         }
       }
     }
@@ -8580,7 +8606,7 @@ bool CVideoDatabase::GetMoviesByWhere(const std::string& strBaseDir, const Filte
       else if (option.first == "year")
       {
         //TODO: DB Date is a tm, so we need to sub 1900 at the moment
-        movie_query += query(query::CODBMovie::premiered.year == option.second.asInteger()-1900);
+        movie_query += query(query::CODBMovie::premiered.date.like(option.second.asString()+"%"));
       }
       else if (option.first == "tagid")
         movie_query += query(query::tag::idTag == option.second.asInteger());

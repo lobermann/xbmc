@@ -847,8 +847,10 @@ odb::query<ODBView_Movie> CSmartPlaylistRule::FormatMovieWhereBetweenClause(cons
   }
   else if (m_field == FieldYear)
   {
-    where_query = (query::CODBMovie::premiered.year >= std::stoi(param1) &&
-                   query::CODBMovie::premiered.year <= std::stoi(param2));
+    CDateTime date1(std::stoi(param1), 1, 1, 0, 0, 0);
+    CDateTime date2(std::stoi(param2)+1, 1, 0, 0, 0, 0);
+    where_query = (query::CODBMovie::premiered.ulong_date >= date1.GetAsULongLong() &&
+                   query::CODBMovie::premiered.ulong_date <= date2.GetAsULongLong());
   }
   else if (m_field == FieldUserRating)
   {
@@ -869,7 +871,7 @@ odb::query<ODBView_Movie> CSmartPlaylistRule::FormatMovieWhereClause(const bool 
 {
   typedef odb::query<ODBView_Movie> query;
   query where_query;
-  
+
   CLog::Log(LOGDEBUG, "%s - param: %s - type: %s - operator: %i", __FUNCTION__, param.c_str(), strType.c_str(), oper);
   
   if (m_field == FieldTitle)

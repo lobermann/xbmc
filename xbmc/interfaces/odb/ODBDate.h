@@ -11,7 +11,9 @@
 
 #include <odb/core.hxx>
 
-#include <ctime>
+#include <string>
+
+#include "../../linux/PlatformDefs.h"
 
 #ifdef ODB_COMPILER
 #pragma db model version(1, 1, open)
@@ -23,62 +25,27 @@ class CODBDate
 public:
   CODBDate()
   {
-    m_year = 0;
-    m_month = 0;
-    m_wday = 0;
-    m_mday = 0;
-    m_hour = 0;
-    m_minute = 0;
-    m_second = 0;
-  };
+    m_ulong_date = 0;
+  }
   
-  CODBDate(tm& time)
+  /*
+   * ulong_date = CDateTime::GetAsULongLong()
+   * date = CDateTime::GetAsDBDateTime()
+   */
+  CODBDate(uint64_t ulong_date, std::string date)
   {
-    m_year = time.tm_year;
-    m_month = time.tm_mon;
-    m_wday = time.tm_wday;
-    m_mday = time.tm_mday;
-    m_hour = time.tm_hour;
-    m_minute = time.tm_min;
-    m_second = time.tm_sec;
-  };
+    m_ulong_date = ulong_date;
+    m_date = date;
+  }
   
-  void setDateFromTm(const tm& time)
+  void setDateTime(uint64_t ulong_date, std::string date)
   {
-    m_year = time.tm_year;
-    m_month = time.tm_mon;
-    m_wday = time.tm_wday;
-    m_mday = time.tm_mday;
-    m_hour = time.tm_hour;
-    m_minute = time.tm_min;
-    m_second = time.tm_sec;
-  };
+    m_ulong_date = ulong_date;
+    m_date = date;
+  }
   
-  tm getDateAsTm()
-  {
-    struct tm *stm;
-    time_t tim;
-    time(&tim);
-    stm = localtime(&tim);
-    
-    stm->tm_year = m_year;
-    stm->tm_mon = m_month;
-    stm->tm_wday = m_wday;
-    stm->tm_mday = m_mday;
-    stm->tm_hour = m_hour;
-    stm->tm_min = m_minute;
-    stm->tm_sec = m_second;
-    
-    return *stm;
-  };
-  
-  int m_year;
-  int m_month;
-  int m_wday;
-  int m_mday;
-  int m_hour;
-  int m_minute;
-  int m_second;
+  uint64_t m_ulong_date;
+  std::string m_date;
   
 private:
   friend class odb::access;
