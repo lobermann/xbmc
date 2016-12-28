@@ -870,7 +870,7 @@ odb::query<ODBView_Movie> CSmartPlaylistRule::FormatMovieWhereClause(const bool 
   typedef odb::query<ODBView_Movie> query;
   query where_query;
   
-  CLog::Log(LOGERROR, "%s - param: %s - type: %s - operator: %i", __FUNCTION__, param.c_str(), strType.c_str(), oper);
+  CLog::Log(LOGDEBUG, "%s - param: %s - type: %s - operator: %i", __FUNCTION__, param.c_str(), strType.c_str(), oper);
   
   if (m_field == FieldTitle)
   {
@@ -881,6 +881,66 @@ odb::query<ODBView_Movie> CSmartPlaylistRule::FormatMovieWhereClause(const bool 
   {
     // OPERATOR_CONTAINS
     where_query = query::genre::name.like(param);
+  }
+  else if (m_field == FieldYear)
+  {
+    
+  }
+  else if (m_field == FieldTime)
+  {
+    
+  }
+  else if (m_field == FieldFilename)
+  {
+    
+  }
+  else if (m_field == FieldPath)
+  {
+    
+  }
+  else if (m_field == FieldInProgress)
+  {
+    
+  }
+  else if (m_field == FieldRating)
+  {
+    
+  }
+  else if (m_field == FieldPlot)
+  {
+    
+  }
+  else if (m_field == FieldPlotOutline)
+  {
+    
+  }
+  else if (m_field == FieldTagline)
+  {
+    
+  }
+  else if (m_field == FieldMPAA)
+  {
+    
+  }
+  else if (m_field == FieldTop250)
+  {
+    
+  }
+  else if (m_field == FieldVotes)
+  {
+  
+  }
+  else if (m_field == FieldTrailer)
+  {
+    
+  }
+  else if (m_field == FieldSet)
+  {
+    
+  }
+  else if (m_field == FieldPlaylist)
+  {
+    
   }
   else if (m_field == FieldDirector)
   {
@@ -986,25 +1046,6 @@ odb::query<ODBView_Movie> CSmartPlaylistRule::FormatMovieWhereClause(const bool 
     
     /* Orig:
      query = negate + " EXISTS (SELECT 1 FROM streamdetails WHERE streamdetails.idFile = " + table + ".idFile AND fVideoAspect " + parameter + ")";
-     */
-  }
-  else if (m_field == FieldAudioCount)
-  {
-    //TODO: Where is this used? Operators need to be included / checked.
-    // Is this really used somewhere? Needs to be done via a native query
-    //where_query = query::CODBStreamDetails::streamType == CStreamDetail::AUDIO &&
-    
-    /* Orig:
-     query = db.PrepareSQL(negate + " EXISTS (SELECT 1 FROM streamdetails WHERE streamdetails.idFile = " + table + ".idFile AND streamdetails.iStreamtype = %i GROUP BY streamdetails.idFile HAVING COUNT(streamdetails.iStreamType) " + parameter + ")",CStreamDetail::AUDIO);
-     */
-  }
-  else if (m_field == FieldSubtitleCount)
-  {
-    //TODO: Where is this used? Operators need to be included / checked.
-    // Is this really used somewhere? Needs to be done via a native query
-    
-    /* Orig:
-     query = db.PrepareSQL(negate + " EXISTS (SELECT 1 FROM streamdetails WHERE streamdetails.idFile = " + table + ".idFile AND streamdetails.iStreamType = %i GROUP BY streamdetails.idFile HAVING COUNT(streamdetails.iStreamType) " + parameter + ")",CStreamDetail::SUBTITLE);
      */
   }
   else if (m_field == FieldPlaycount)

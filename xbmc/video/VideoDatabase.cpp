@@ -8586,7 +8586,7 @@ bool CVideoDatabase::GetMoviesByWhere(const std::string& strBaseDir, const Filte
         movie_query += query(query::tag::idTag == option.second.asInteger());
       else if (option.first == "tag")
         movie_query += query(query::tag::name.like(option.second.asString()));
-      else if (option.first == "filter")
+      else if (option.first == "filter" || option.first == "xsp")
       {
         CSmartPlaylist xspFilter;
         if (!xspFilter.LoadFromJson(option.second.asString()))
