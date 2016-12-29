@@ -3466,17 +3466,20 @@ void CVideoDatabase::SetMovieDetailsValues(CODBMovie& odbMovie, CVideoInfoTag& d
   if (details.m_iUserRating > 0 && details.m_iUserRating < 11)
     odbMovie.m_userrating = details.m_iUserRating;
   
-  if (details.HasPremiered())
+  if (details.m_premiered.IsValid())
   {
-    //TODO: HACK, date is not correct when called by CThumbExtractor::DoWork(), needs to be checked why that is
-    ULONGLONG ulongtime = details.GetPremiered().GetAsULongLong();
-    if(ulongtime > 0)
-      odbMovie.m_premiered.setDateTime(ulongtime, details.GetPremiered().GetAsDBDateTime());
-  }
-  else
-  {
-    CDateTime yeartime(details.GetYear(), 1, 1, 0, 0, 0);
-    odbMovie.m_premiered.setDateTime(yeartime.GetAsULongLong(), yeartime.GetAsDBDateTime()) ;
+    if (details.HasPremiered())
+    {
+      //TODO: HACK, date is not correct when called by CThumbExtractor::DoWork(), needs to be checked why that is
+      ULONGLONG ulongtime = details.GetPremiered().GetAsULongLong();
+      if(ulongtime > 0)
+        odbMovie.m_premiered.setDateTime(ulongtime, details.GetPremiered().GetAsDBDateTime());
+    }
+    else
+    {
+      CDateTime yeartime(details.GetYear(), 1, 1, 0, 0, 0);
+      odbMovie.m_premiered.setDateTime(yeartime.GetAsULongLong(), yeartime.GetAsDBDateTime());
+    }
   }
 }
 

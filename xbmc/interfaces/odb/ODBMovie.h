@@ -162,6 +162,7 @@ private:
   object(CODBSet = set: CODBMovie::m_set) \
   object(CODBBookmark = bookmark: CODBMovie::m_bookmarks) \
   object(CODBFile = fileView: CODBMovie::m_file) \
+  object(CODBPath = pathView: fileView::m_path) \
   object(CODBStreamDetails: CODBMovie::m_file == CODBStreamDetails::m_file) \
   object(CODBRating = defaultRating: CODBMovie::m_defaultRating) \
   query(distinct)

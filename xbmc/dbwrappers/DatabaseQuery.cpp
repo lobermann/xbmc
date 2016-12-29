@@ -439,7 +439,7 @@ odb::query<ODBView_Movie> CDatabaseQueryRule::GetMovieWhereClause(const std::str
       if (negate)
         wholeQuery = wholeQuery && query;
       else
-        wholeQuery = wholeQuery || query;
+        wholeQuery = wholeQuery || query; //TODO: Verify if || is correct here
     }
   }
   

@@ -26,6 +26,7 @@ public:
   CODBDate()
   {
     m_ulong_date = 0;
+    m_year = 0;
   }
   
   /*
@@ -36,15 +37,24 @@ public:
   {
     m_ulong_date = ulong_date;
     m_date = date;
+    if (!date.empty() && date.length() >= 4)
+      m_year = std::stoi(date.substr(0,4));
+    else
+      m_year = 0;
   }
   
   void setDateTime(uint64_t ulong_date, std::string date)
   {
     m_ulong_date = ulong_date;
     m_date = date;
+    if (!date.empty() && date.length() >= 4)
+      m_year = std::stoi(date.substr(0,4));
+    else
+      m_year = 0;
   }
   
   uint64_t m_ulong_date;
+  int m_year;
   std::string m_date;
   
 private:

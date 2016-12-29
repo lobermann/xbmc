@@ -70,6 +70,11 @@ protected:
                                               const std::string &oper,
                                               const CDatabase &db,
                                               const std::string &type) const;
+  std::string FormatODBString(const CDatabaseQueryRule::SEARCH_OPERATOR &oper,
+                              const std::string& param) const;
+  template<typename T, typename U, typename V> T FormatODBParam(const U& val,
+                                                              const CDatabaseQueryRule::SEARCH_OPERATOR &oper,
+                                                              const V& param) const;
   virtual odb::query<ODBView_Movie> FormatMovieWhereClause(const bool &negate,
                                                            const CDatabaseQueryRule::SEARCH_OPERATOR &oper,
                                                            const std::string &param,
