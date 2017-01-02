@@ -847,10 +847,8 @@ odb::query<ODBView_Movie> CSmartPlaylistRule::FormatMovieWhereBetweenClause(cons
   }
   else if (m_field == FieldYear)
   {
-    CDateTime date1(std::stoi(param1), 1, 1, 0, 0, 0);
-    CDateTime date2(std::stoi(param2)+1, 1, 0, 0, 0, 0);
-    where_query = (query::CODBMovie::premiered.ulong_date >= date1.GetAsULongLong() &&
-                   query::CODBMovie::premiered.ulong_date <= date2.GetAsULongLong());
+    where_query = (query::CODBMovie::premiered.year >= std::stoi(param1) &&
+                   query::CODBMovie::premiered.year <= std::stoi(param2));
   }
   else if (m_field == FieldUserRating)
   {
@@ -1031,7 +1029,7 @@ odb::query<ODBView_Movie> CSmartPlaylistRule::FormatMovieWhereClause(const bool 
   }
   else if (m_field == FieldYear)
   {
-    //TODO: We should store the year as a dedicated int next to the date, for easier querying
+    where_query = FormatODBParam<query, query::CODBMovie::premiered_class_::year_type_, int>(query::CODBMovie::premiered.year, oper, std::stoi(param));
   }
   else if (m_field == FieldTime)
   {

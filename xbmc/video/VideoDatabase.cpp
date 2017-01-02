@@ -2758,7 +2758,7 @@ int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, CV
       ODBView_Movie_File_UID res;
       
       if (m_cdb.getDB()->query_one<ODBView_Movie_File_UID>(odb::query<ODBView_Movie_File_UID>::CODBUniqueID::value == details.GetUniqueID()
-                                                           && odb::query<ODBView_Movie_File_UID>::CODBMovie::premiered.date.like(std::to_string(details.GetYear())+"%")
+                                                           && odb::query<ODBView_Movie_File_UID>::CODBMovie::premiered.year == details.GetYear()
                                                            && odb::query<ODBView_Movie_File_UID>::CODBMovie::idMovie != idMovie
                                                            && odb::query<ODBView_Movie_File_UID>::CODBFile::playCount > 0
                                                            , res))
@@ -3470,10 +3470,7 @@ void CVideoDatabase::SetMovieDetailsValues(CODBMovie& odbMovie, CVideoInfoTag& d
   {
     if (details.HasPremiered())
     {
-      //TODO: HACK, date is not correct when called by CThumbExtractor::DoWork(), needs to be checked why that is
-      ULONGLONG ulongtime = details.GetPremiered().GetAsULongLong();
-      if(ulongtime > 0)
-        odbMovie.m_premiered.setDateTime(ulongtime, details.GetPremiered().GetAsDBDateTime());
+      odbMovie.m_premiered.setDateTime(details.GetPremiered().GetAsULongLong(), details.GetPremiered().GetAsDBDateTime());
     }
     else
     {
@@ -8168,9 +8165,7 @@ bool CVideoDatabase::GetYearsNav(const std::string& strBaseDir, CFileItemList& i
         if (!i->m_file.load() || !i->m_file->m_path.load())
           continue;
         
-        CDateTime cdt;
-        cdt.SetFromULongLong(i->m_premiered.m_ulong_date);
-        int lYear = cdt.GetYear();
+        int lYear = i->m_premiered.m_year;
         
         int playCount = i->m_file->m_playCount; //TODO: Figure out where / why this is needed and if this value is correct
         
@@ -8607,10 +8602,7 @@ bool CVideoDatabase::GetMoviesByWhere(const std::string& strBaseDir, const Filte
       else if (option.first == "set")
         movie_query += query(query::set::name.like(option.second.asString()));
       else if (option.first == "year")
-      {
-        //TODO: DB Date is a tm, so we need to sub 1900 at the moment
-        movie_query += query(query::CODBMovie::premiered.date.like(option.second.asString()+"%"));
-      }
+        movie_query += query(query::CODBMovie::premiered.year == option.second.asInteger());
       else if (option.first == "tagid")
         movie_query += query(query::tag::idTag == option.second.asInteger());
       else if (option.first == "tag")
@@ -8638,14 +8630,18 @@ bool CVideoDatabase::GetMoviesByWhere(const std::string& strBaseDir, const Filte
     int total = 0;
 
     // Apply the limiting directly here if there's no special sorting but limiting
-    /*if (extFilter.limit.empty() &&
+    if (extFilter.limit.empty() &&
         sorting.sortBy == SortByNone &&
        (sorting.limitStart > 0 || sorting.limitEnd > 0))
     {
       movie_query += DatabaseUtils::BuildLimitClause(sorting.limitEnd, sorting.limitStart);
-    }*/
+    }
+
+    SortUtils::SortODBMovieQuery(sortDescription);
     
     //TODO: Add Sorting params
+    if (!SortUtils::SortFromDataset(sortDescription, MediaTypeMovie, m_pDS, results))
+      return false;
     
     odb::result<ODBView_Movie> res(m_cdb.getDB()->query<ODBView_Movie>(movie_query));
     for (odb::result<ODBView_Movie>::iterator i = res.begin(); i != res.end(); i++)
