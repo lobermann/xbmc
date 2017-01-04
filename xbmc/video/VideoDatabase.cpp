@@ -5051,7 +5051,6 @@ CVideoInfoTag CVideoDatabase::GetDetailsForMovie(const odb::result<ODBView_Movie
     details.m_resumePoint.playerState = odbBookmark.m_playerState;
     details.m_resumePoint.player = odbBookmark.m_player;
     details.m_resumePoint.type = CBookmark::RESUME;
-    CLog::Log(LOGERROR, "123");
   }
 
   if (getDetails)
@@ -5690,6 +5689,10 @@ bool CVideoDatabase::GetArtForItem(int mediaId, const MediaType &mediaType, std:
           art.insert(make_pair(odbPerson.m_art->m_type, odbPerson.m_art->m_url));
         }
       }
+    }
+    else if (mediaType == "genre")
+    {
+      //TODO: This is called but no where defined. Need to be checked
     }
     //TODO: Add for TV Shows and MusicMovies
     else
@@ -8621,27 +8624,14 @@ bool CVideoDatabase::GetMoviesByWhere(const std::string& strBaseDir, const Filte
         }
         // remove the filter if it doesn't match the item type
         else
-          videoUrl.RemoveOption("filter");
+          videoUrl.RemoveOption(option.first);
       }
-      CLog::Log(LOGERROR, "%s added filter for %s - %s", __FUNCTION__, option.first.c_str(), option.second.asString().c_str());
+      CLog::Log(LOGDEBUG, "%s added filter for %s - %s", __FUNCTION__, option.first.c_str(), option.second.asString().c_str());
     }
     
-
     int total = 0;
 
-    // Apply the limiting directly here if there's no special sorting but limiting
-    if (extFilter.limit.empty() &&
-        sorting.sortBy == SortByNone &&
-       (sorting.limitStart > 0 || sorting.limitEnd > 0))
-    {
-      movie_query += DatabaseUtils::BuildLimitClause(sorting.limitEnd, sorting.limitStart);
-    }
-
-    SortUtils::SortODBMovieQuery(sortDescription);
-    
-    //TODO: Add Sorting params
-    if (!SortUtils::SortFromDataset(sortDescription, MediaTypeMovie, m_pDS, results))
-      return false;
+    movie_query = movie_query + SortUtils::SortODBMovieQuery(sortDescription);
     
     odb::result<ODBView_Movie> res(m_cdb.getDB()->query<ODBView_Movie>(movie_query));
     for (odb::result<ODBView_Movie>::iterator i = res.begin(); i != res.end(); i++)
@@ -8664,6 +8654,8 @@ bool CVideoDatabase::GetMoviesByWhere(const std::string& strBaseDir, const Filte
       
       ++total;
     }
+    
+    //TODO: Random sorting needs to be implemented
 
     items.SetProperty("total", total);
 
