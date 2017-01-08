@@ -1125,7 +1125,7 @@ bool CDateTime::SetFromRFC1123DateTime(const std::string &dateTime)
   return SetDateTime(year, month, day, hour, min, sec);
 }
 
-bool CDateTime::SetFromULongLong(ULONGLONG& time)
+bool CDateTime::SetFromULongLong(ULONGLONG time)
 {
   ULARGE_INTEGER ulint;
   ulint.QuadPart = time;

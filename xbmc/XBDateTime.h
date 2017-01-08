@@ -188,7 +188,7 @@ public:
   bool SetFromUTCDateTime(const CDateTime &dateTime);
   bool SetFromUTCDateTime(const time_t &dateTime);
   bool SetFromRFC1123DateTime(const std::string &dateTime);
-  bool SetFromULongLong(ULONGLONG& time);
+  bool SetFromULongLong(ULONGLONG time);
 
   /*! \brief set from a database datetime format YYYY-MM-DD HH:MM:SS
    \sa GetAsDBDateTime()
